@@ -45,7 +45,7 @@ button.b.wide{display:block;width:100%;margin-top:10px}
 .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:7px}
 @keyframes sp{to{transform:rotate(360deg)}}
 .lbl{font-size:12px;letter-spacing:1px;color:var(--muted);font-weight:700;text-transform:uppercase;margin:14px 0 6px;text-align:left}
-.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px}
 .chips.maps{grid-template-columns:repeat(3,1fr)}
 .chip{appearance:none;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);cursor:pointer;font-family:inherit;text-align:left;min-width:0}
 .chip svg{height:14px;width:auto;fill:currentColor}
@@ -54,6 +54,16 @@ button.b.wide{display:block;width:100%;margin-top:10px}
 .chip.on{border-color:var(--accent);background:rgba(255,138,61,.18)}
 .chip:disabled{opacity:.45;cursor:default}
 .sect{margin-top:14px;padding-top:4px;border-top:1px solid var(--line)}
+.tips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;margin:12px 0 4px;font-size:13px;color:var(--muted)}
+.tips span{white-space:nowrap}
+.tips kbd{font-family:inherit;font-size:12px;font-weight:700;color:var(--text);background:rgba(255,255,255,.08);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:1px 6px;margin-right:4px}
+details.more{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:rgba(255,255,255,.03)}
+details.more summary{cursor:pointer;padding:10px 0;font-weight:700;font-size:14px;color:var(--text);list-style:none;display:flex;justify-content:space-between}
+details.more summary::after{content:'▾';color:var(--muted)}
+details.more[open] summary::after{content:'▴'}
+details.more summary::-webkit-details-marker{display:none}
+details.more[open]{padding-bottom:12px}
+details.more .set:first-of-type{margin-top:2px}
 .set{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;font-size:15px;text-align:left}
 .set input[type=range]{flex:1;max-width:200px;accent-color:var(--accent)}
 .set input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
@@ -256,15 +266,20 @@ body.zmode .duel-only{display:none!important}
     <div class="chips" id="loS"></div>
     <p class="mini" id="loNote"></p>
     </div>
-    <div class="sect">
-      <div class="lbl">Ayarlar</div>
+    <div class="tips" id="quickTips"></div>
+    <details class="more">
+      <summary>Ayarlar</summary>
       <label class="set">Hassasiyet <input type="range" id="sens" min="0.3" max="3" step="0.05"><output id="sensVal">1.00</output></label>
+      <div class="set" id="botRow">Zorluk <div class="seg" id="botLvl"><button data-b="easy">Kolay</button><button data-b="normal">Orta</button><button data-b="hard">Zor</button></div></div>
       <label class="set">Ses <input type="checkbox" id="snd"></label>
       <label class="set zombie-only">Müzik <input type="checkbox" id="mus"></label>
-      <div class="set" id="botRow">Robot zorluğu <div class="seg" id="botLvl"><button data-b="easy">Kolay</button><button data-b="normal">Orta</button><button data-b="hard">Zor</button></div></div>
+      <label class="set" id="fsRow">Tam ekran <input type="checkbox" id="fsOn"></label>
       <div class="set">Grafik <div class="seg" id="gfx"><button data-q="auto">Otomatik</button><button data-q="low">Düşük</button><button data-q="high">Yüksek</button></div></div>
-    </div>
-    <div class="sect" id="infoBox"></div>
+    </details>
+    <details class="more">
+      <summary>Kurallar ve tüm tuşlar</summary>
+      <div id="infoBox"></div>
+    </details>
     <button class="b sec wide" id="btnLeave">Oyundan çık</button>
     <p class="hint" id="pauseHint"></p>
   </div>
@@ -361,6 +376,7 @@ const settings = {
   map: ['arena', 'sokak', 'liman'].includes(store.get('map', 'arena')) ? store.get('map', 'arena') : 'arena',
   bot: ['easy', 'normal', 'hard'].includes(store.get('bot', 'normal')) ? store.get('bot', 'normal') : 'normal',
   mode: store.get('mode', 'duel') === 'zombie' ? 'zombie' : 'duel',
+  fs: store.get('fs', true) !== false,
   music: store.get('music', true) !== false,
 };
 let MODE = settings.mode;
@@ -1222,8 +1238,8 @@ const net = { peer: null, conn: null, role: null, code: '', practice: false, las
 const bot = { body: newBody(), hp: CFG.maxHp, alive: false, life: 0, respT: 0, target: null, think: 0, yaw: 0, pitch: 0, stuck: 0, crouch: false, seeT: 0, fireCd: 0, shots: 5, strafe: 1, strafeT: 0 };
 // Robot zorluğu: tepki süresi, nişan hatası, kafaya nişan alma olasılığı, seri uzunluğu ve aralar
 const BOT_LEVELS = {
-  easy: { react: 0.8, err: 0.05, head: 0.05, burst: [3, 5], pause: [0.9, 1.4] },
-  normal: { react: 0.45, err: 0.028, head: 0.12, burst: [4, 7], pause: [0.5, 0.9] },
+  easy: { react: 0.9, err: 0.055, head: 0.04, burst: [3, 4], pause: [1.0, 1.5] },
+  normal: { react: 0.55, err: 0.034, head: 0.1, burst: [4, 6], pause: [0.6, 1.0] },
   hard: { react: 0.25, err: 0.015, head: 0.25, burst: [5, 9], pause: [0.3, 0.6] },
 };
 let camOffset = 0, hurtFx = 0, hitFx = 0, hitHead = false, dmgDirT = 0, vmKick = 0, bobT = 0, flashT = 0, sendAcc = 0;
@@ -1830,14 +1846,16 @@ function buildWeps() {
 function chipHtml(w, sel) {
   const W = WEAPONS[w];
   const dmg = W.pellets ? W.pellets + '×' + W.body : W.body;
-  return `<button class="chip${w === sel ? ' on' : ''}" data-w="${w}">${icon(w)}<b>${W.name}</b><small>Hasar ${dmg} · ${W.mag} mermi · ${W.auto ? 'otomatik' : 'tekli'}</small><small>${W.info}</small></button>`;
+  return `<button class="chip${w === sel ? ' on' : ''}" data-w="${w}" title="${W.info}">${icon(w)}<b>${W.name}</b><small>${dmg} hasar · ${W.mag} mermi${W.auto ? ' · oto' : ''}</small></button>`;
 }
 function renderLoadout() {
   $('loP').innerHTML = PRIMARY.map((w) => chipHtml(w, settings.lp)).join('');
   $('loS').innerHTML = SECONDARY.map((w) => chipHtml(w, settings.ls)).join('');
   $('gfx').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.q === settings.gfx));
   $('botLvl').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.b === settings.bot));
-  $('botRow').classList.toggle('hidden', !net.practice || MODE === 'zombie');
+  // Zorluk: düelloda robota, zombide (oda sahibinde) zombilere uygulanır
+  $('botRow').classList.toggle('hidden', MODE === 'duel' ? !net.practice : !zIsHost());
+  $('fsRow').classList.toggle('hidden', isTouch);
 }
 function chooseWeapon(w) {
   if (PRIMARY.includes(w)) { settings.lp = w; store.set('lp', w); }
@@ -1848,14 +1866,25 @@ function chooseWeapon(w) {
   $('loNote').textContent = now ? 'Seçildi: ' + WEAPONS[w].name : WEAPONS[w].name + ' bir sonraki doğuşta gelecek.';
   renderLoadout();
 }
+function renderTips() {
+  const k = (a, b) => `<span><kbd>${a}</kbd>${b}</span>`;
+  let h;
+  if (isTouch) h = MODE === 'zombie'
+    ? k('Sol', 'yürü') + k('Sağ', 'bak') + k('AL', 'satın al') + k('BOMBA', 'at')
+    : k('Sol', 'yürü') + k('Sağ', 'bak') + k('ATEŞ', 'ateş') + k('NİŞAN', 'nişan');
+  else h = MODE === 'zombie'
+    ? k('WASD', 'yürü') + k('Sol tık', 'ateş') + k('E', 'satın al · kapı aç') + k('G', 'bomba') + k('Esc', 'menü')
+    : k('WASD', 'yürü') + k('Sol tık', 'ateş') + k('Sağ tık', 'nişan') + k('Ctrl', 'eğil') + k('1 2 3', 'silah') + k('Esc', 'menü');
+  $('quickTips').innerHTML = h;
+}
 function renderInfo() {
+  renderTips();
   if (MODE === 'zombie') { zRenderInfo(); return; }
   const room = net.practice ? 'Antrenman' : 'Online maç';
   const keysHtml = isTouch
     ? [['Sol başparmak', 'yürü'], ['Sağ taraf', 'etrafa bak'], ['ATEŞ', 'ateş et (sürükleyerek de bakarsın)'], ['NİŞAN', 'nişan al (AWP: dürbün, bıçak: güçlü saplama)'], ['ZIPLA', 'zıpla, basılı tut: bunny hop'], ['EĞİL', 'eğil'], ['⟳', 'şarjör değiştir'], ['Alttaki simgeler', 'silah değiştir'], ['Skora dokun', 'skor tablosu']]
     : [['W A S D', 'yürü'], ['Shift', 'sessiz ve yavaş yürü'], ['Ctrl / C', 'eğil'], ['Boşluk', 'zıpla (basılı tut + W: bunny hop, her zıplayışta hızlanırsın)'], ['Sol tık', 'ateş'], ['Sağ tık', 'nişan al · AWP: dürbün (2 kademe) · bıçak: güçlü saplama'], ['1 · 2 · 3', 'ana silah · tabanca · bıçak'], ['Q · tekerlek', 'önceki silah · silah değiştir'], ['R', 'şarjör değiştir'], ['Tab', 'skor tablosu'], ['Esc', 'bu menü']];
-  $('infoBox').innerHTML = `<div class="lbl">Oyun bilgisi</div>
-    <ul class="rules">
+  $('infoBox').innerHTML = `<ul class="rules">
       <li>${room ? room + ' · ' : ''}Harita: <b>${mapName(MAP.id || settings.map)}</b> · İlk <b>${CFG.winKills} leşi</b> alan kazanır.</li>
       <li>Kafadan vuruş her silahla <b>tek atar</b>. AWP nereden vurursa vursun tek atar.</li>
       <li><b>Tahta kasaların</b> arkasından vurulur (hasar azalır). Beton, duvar, konteyner ve araba durdurur.</li>
@@ -1929,7 +1958,7 @@ function updateHud(now) {
   else if (state === 'play' && me.alive && !W.melee && me.ammo[me.w] === 0 && me.reload === 0) t = MODE === 'zombie' && !(Z.reserve[me.w] > 0) ? 'Mermi bitti · duvardan ya da kutudan yenisini al' : isTouch ? 'Şarjör boş · ⟳' : 'Şarjör boş · R';
   else if (MODE === 'zombie' && Z.down === 1) t = Z.selfRev > 0 ? 'Quick Revive seni kaldırıyor…' : 'Yerdesin · ' + Math.ceil(Z.bleed) + ' sn içinde kaldırılmazsan ölürsün';
   if (t !== msgShown) { msgShown = t; if (t) elMsg.textContent = t; elMsg.classList.toggle('on', !!t); }
-  elVig.style.opacity = Math.max(hurtFx, me.alive && me.hp <= 35 ? 0.35 : 0).toFixed(2);
+  elVig.style.opacity = Math.max(hurtFx, me.alive && me.hp / (me.maxHp || 100) <= 0.35 ? 0.35 : 0).toFixed(2);
   elHit.style.opacity = hitFx.toFixed(2);
   elHit.classList.toggle('hs', hitHead);
   elDmg.style.opacity = dmgDirT.toFixed(2);
@@ -1950,7 +1979,7 @@ function updateHud(now) {
 // ---------- Zombi modu (CoD tarzı, birlikte) ----------
 // Kurallar CoD'dan: zombi canı 150'den başlar, 9. raunda kadar +100, sonra her raunt %10 artar.
 // Puan: vuruş 10, leş +50, kafadan leş +100, bıçakla leş +130. Güçlendirmeler 30 sn sürer.
-const ZCFG = { maxAlive: 24, hitPts: 10, killPts: 50, headPts: 100, knifePts: 130, dmgMul: 4, headMul: 2.5, knife: 150, knifeHeavy: 300, atk: 45, atkRange: 1.3, regenDelay: 3, regen: 80, bleed: 30, revive: 3, reviveQR: 1.5, dropChance: 0.03, dropsPerRound: 4, puTime: 30, breakTime: 10, boxCost: 950 };
+const ZCFG = { maxAlive: 24, hitPts: 10, killPts: 50, headPts: 100, knifePts: 130, dmgMul: 4, headMul: 2.5, knife: 150, knifeHeavy: 300, atk: 30, atkRange: 1.25, regenDelay: 2.2, regen: 110, bleed: 30, revive: 3, reviveQR: 1.5, dropChance: 0.03, dropsPerRound: 4, puTime: 30, breakTime: 10, boxCost: 950 };
 const PERKS = {
   jug: { name: 'Juggernog', cost: 2500, color: 0xd12a2a, short: 'J', info: 'can 250' },
   speed: { name: 'Speed Cola', cost: 3000, color: 0x2fae4a, short: 'S', info: 'şarjör iki kat hızlı' },
@@ -1965,6 +1994,9 @@ const PU = {
   carp: { name: 'CARPENTER', color: '#c8f07a' },
 };
 const PAP_COST = 5000;
+// Zombi zorluğu (oda sahibinin ayarı): vuruş hasarı, can ve hız çarpanı
+const ZDIFF = { easy: { dmg: 0.65, hp: 0.75, spd: 0.9 }, normal: { dmg: 1, hp: 1, spd: 1 }, hard: { dmg: 1.5, hp: 1.25, spd: 1.1 } };
+const zDiff = () => ZDIFF[settings.bot] || ZDIFF.normal;
 const BOX_SPOTS = [[4, 5.15, 0], [-23.55, 8, Math.PI / 2], [23.55, 8, -Math.PI / 2], [2.5, -17.55, Math.PI]];
 const BOX_POOL = [0, 1, 2, 3, 4, 6, 7, 9];
 const MONKEY = -10;
@@ -2388,7 +2420,7 @@ function zReset() {
   Z.perks.clear();
   Z.pap.clear(); Z.papBusy = 0; Z.boxUses = 0; Z.teddy = false; Z.repairPts = 0; Z.lsTemp = false;
   for (const n of Z.nades || []) scene.remove(n.mesh);
-  Z.nades = []; Z.frags = 2; Z.monkeys = 0; Z.power = false; Z.dogRound = false; Z.lure = null;
+  Z.nades = []; Z.frags = 0; Z.monkeys = 0; Z.power = false; Z.dogRound = false; Z.lure = null;
   VMS.forEach((v) => { if (v.mats) v.mats.forEach((m, k) => { m.color.setHex(v.orig[k]); m.emissive.setHex(0); }); });
   MAP.id = '';
   buildMap('fabrika');
@@ -2449,7 +2481,7 @@ function zSpawnDog() {
     x = cx; z = cz; break;
   }
   const zb = { id: Z.nextId++, body: newBody(), pos: new THREE.Vector3(x, 0, z), tPos: new THREE.Vector3(x, 0, z), yaw: 0, tYaw: 0,
-    hp: Math.round(zHealth(Z.round) * 0.6), alive: true, deathT: 0, tier: 3, dog: true, speed: 7 * (0.92 + Math.random() * 0.12), atkCd: 0.6, atkT: -1, atk: 0,
+    hp: Math.round(zHealth(Z.round) * 0.6 * zDiff().hp), alive: true, deathT: 0, tier: 3, dog: true, speed: 6.6 * (0.92 + Math.random() * 0.12) * zDiff().spd, atkCd: 0.6, atkT: -1, atk: 0,
     walk: Math.random() * 6, rise: 0, mesh: zGetDog(), lastPos: new THREE.Vector3(x, 0, z), spd: 0, state: 'chase' };
   zb.body.p.set(x, 0, z);
   Z.zombies.push(zb); Z.byId.set(zb.id, zb);
@@ -2469,7 +2501,7 @@ function zSpawnOne() {
   const tier = roll < Math.min(0.9, Math.max(0, (r - 6) * 0.15)) ? 2 : roll < Math.min(1, Math.max(0, (r - 2) * 0.22)) ? 1 : 0;
   const [x, z] = w.out;
   const zb = { id: Z.nextId++, body: newBody(), pos: new THREE.Vector3(x, 0, z), tPos: new THREE.Vector3(x, 0, z), yaw: 0, tYaw: Math.atan2(-(w.in[0] - x), -(w.in[1] - z)),
-    hp: zHealth(r), alive: true, deathT: 0, tier, speed: [1.6, 3.4, 5.4][tier] * (0.9 + Math.random() * 0.2), atkCd: 0.8, atkT: -1, atk: 0,
+    hp: Math.round(zHealth(r) * zDiff().hp), alive: true, deathT: 0, tier, speed: [1.6, 3.4, 5.2][tier] * (0.9 + Math.random() * 0.2) * zDiff().spd, atkCd: 0.8, atkT: -1, atk: 0,
     walk: Math.random() * 6, rise: 0, mesh: zGetMesh(), lastPos: new THREE.Vector3(x, 0, z), spd: 0, win: w, state: w.boards > 0 ? 'tear' : 'vault', tearT: 1.2, vaultT: 0 };
   zb.body.p.set(x, 0, z);
   zb.yaw = zb.tYaw;
@@ -2504,7 +2536,7 @@ function zUpdateHost(dt) {
   if (Z.navT <= 0 && targets.length) { navField(targets); Z.navT = 0.3; }
   for (const z of Z.zombies) {
     if (!z.alive) continue;
-    const AR = z.dog ? 1.15 : ZCFG.atkRange, AW = z.dog ? 0.2 : 0.35, AE = z.dog ? 0.45 : 0.7, AD = z.dog ? 30 : ZCFG.atk;
+    const AR = z.dog ? 1.1 : ZCFG.atkRange, AW = z.dog ? 0.2 : 0.35, AE = z.dog ? 0.5 : 0.75, AD = Math.round((z.dog ? 20 : ZCFG.atk) * zDiff().dmg);
     if (z.state === 'tear') {
       const w = z.win;
       z.tYaw = Math.atan2(-(w.in[0] - w.out[0]), -(w.in[1] - w.out[1]));
@@ -2546,12 +2578,21 @@ function zUpdateHost(dt) {
       if (d < 0.75 && d > 1e-3) { wx += ox / d * 0.8; wz += oz / d * 0.8; }
     }
     moveBody(z.body, dt, wx, wz, false, speed);
+    // Bir yere takılıp 12 sn ilerleyemeyen zombi açık bir pencereden yeniden girer (raunt kilitlenmesin)
+    if (speed > 0 && best > 3 && Math.hypot(z.body.v.x, z.body.v.z) < 0.3) z.stuckT = (z.stuckT || 0) + dt; else z.stuckT = 0;
+    if (z.stuckT > 12) {
+      const wins = Z.windows.filter((w) => Z.areas.has(w.area));
+      const w = wins[Math.random() * wins.length | 0];
+      if (w) { z.win = w; z.state = w.boards > 0 ? 'tear' : 'vault'; z.vaultT = 0; z.tearT = 1.2; z.body.p.set(w.out[0], 0, w.out[1]); z.pos.set(w.out[0], 0, w.out[1]); }
+      z.stuckT = 0;
+      continue;
+    }
     z.atkCd -= dt;
     if (z.atkT >= 0) {
       z.atkT += dt;
       if (z.atkT >= AW && z.atkT - dt < AW && tgt) {
         const d = Math.hypot(tgt.x - z.body.p.x, tgt.z - z.body.p.z);
-        if (d < AR + 0.45 && !tgt.lure) {
+        if (d < AR + 0.2 && !tgt.lure) {
           if (tgt.me) zHurt(AD, z.body.p);
           else send({ t: 'za', d: AD, x: r2(z.body.p.x), z: r2(z.body.p.z) });
         }
@@ -3091,8 +3132,7 @@ function zRenderInfo() {
   const keysHtml = isTouch
     ? [['Sol başparmak', 'yürü'], ['Sağ taraf', 'etrafa bak'], ['ATEŞ', 'ateş et'], ['NİŞAN', 'nişan al'], ['AL', 'satın al, kapı aç; basılı tut: arkadaşını kaldır, pencere onar'], ['BOMBA · MAYMUN', 'el bombası · maymun bombası'], ['ZIPLA · EĞİL', 'zıpla · eğil'], ['⟳', 'şarjör değiştir'], ['Alttaki simgeler', 'silah değiştir']]
     : [['W A S D', 'yürü'], ['Shift', 'yavaş yürü'], ['Ctrl / C', 'eğil'], ['Boşluk', 'zıpla'], ['Sol tık', 'ateş'], ['Sağ tık', 'nişan al · bıçak: güçlü saplama'], ['E', 'satın al, kapı aç · basılı tut: arkadaşını kaldır, pencere onar'], ['G · V', 'el bombası · maymun bombası'], ['1 · 2 · 3', 'silahlar · bıçak'], ['R', 'şarjör değiştir'], ['Tab', 'puan tablosu'], ['Esc', 'bu menü']];
-  $('infoBox').innerHTML = `<div class="lbl">Zombi modu</div>
-    <ul class="rules">
+  $('infoBox').innerHTML = `<ul class="rules">
       <li>${net.practice ? 'Tek başına' : 'Arkadaşınla birlikte'} · Harita: <b>Fabrika</b>. Her raunt zombiler kalabalıklaşır ve güçlenir; ne kadar dayanabilirsin?</li>
       <li><b>Puan:</b> vuruş 10, leş +50, kafadan leş +100, bıçakla leş +130. 500 puan ve tabancayla başlarsın.</li>
       <li><b>Duvardaki silahlar</b> (MP5 1000, Deagle 900, M4 1200, AK-47 1400, Pompalı 1500); sahip olduğun silahın mermisi yarı fiyat. <b>Gizemli kutu</b> 950: rastgele silah.</li>
@@ -3210,6 +3250,7 @@ function zUpdateNades(dt) {
     if (n.t <= 0) {
       zExplode(n.pos, n.kind === 'frag' ? 4.5 : 5.5, n.kind === 'frag' ? 900 : 3000, n.mine);
       scene.remove(n.mesh);
+      n.mesh.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
       Z.nades.splice(Z.nades.indexOf(n), 1);
     }
   }
@@ -3497,11 +3538,13 @@ function step(now, render) {
 }
 
 // ---------- Masaüstü: tam ekran + klavye kilidi (Ctrl+W sekmeyi kapatmasın) ----------
+// Sadece oyun tuşları kilitlenir: Esc ve F11 tarayıcıda kalır, tek basışta tam ekrandan çıkılır
+const LOCK_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyR', 'KeyT', 'KeyN', 'KeyC', 'KeyG', 'KeyV', 'Tab', 'Space', 'Digit1', 'Digit2', 'Digit3', 'ControlLeft', 'ControlRight'];
 function grabDesktop() {
   const el = document.documentElement;
-  const lockKeys = () => { if (navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock().catch(() => {}); };
-  if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen({ navigationUI: 'hide' }).then(lockKeys).catch(() => {});
-  else lockKeys();
+  const lockKeys = () => { if (navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock(LOCK_KEYS).catch(() => {}); };
+  if (settings.fs && !document.fullscreenElement && el.requestFullscreen) el.requestFullscreen({ navigationUI: 'hide' }).then(lockKeys).catch(() => {});
+  else if (document.fullscreenElement) lockKeys();
   requestLock();
 }
 function releaseDesktop(full) {
@@ -3524,6 +3567,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'Tab') { e.preventDefault(); if (state === 'play' || state === 'end') showBoard(true); return; }
   if (playing && (e.ctrlKey || e.metaKey) && e.code !== 'KeyR') e.preventDefault();
   if (e.code === 'Escape' && playing && locked()) { document.exitPointerLock(); return; }
+  if (e.code === 'F11' && document.fullscreenElement) { e.preventDefault(); if (navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock(); document.exitFullscreen().catch(() => {}); return; }
   keys.add(e.code);
   if (playing) {
     if (e.code === 'KeyR') { e.preventDefault(); tryReload(); }
@@ -3711,6 +3755,8 @@ $('btnOk').onclick = () => showPanel('pMain');
 $('sens').value = settings.sens;
 $('sensVal').textContent = settings.sens.toFixed(2);
 $('sens').oninput = (e) => { settings.sens = +e.target.value; $('sensVal').textContent = settings.sens.toFixed(2); store.set('sens', settings.sens); };
+$('fsOn').checked = settings.fs;
+$('fsOn').onchange = (e) => { settings.fs = e.target.checked; store.set('fs', settings.fs); if (!settings.fs && document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
 $('mus').checked = settings.music;
 $('mus').onchange = (e) => { settings.music = e.target.checked; store.set('music', settings.music); if (!settings.music) zMusicStop(); };
 $('snd').checked = settings.sound;
