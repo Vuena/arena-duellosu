@@ -2885,15 +2885,32 @@ function connLost(msg) {
 // Oyuncu hep mavi takımda (A), rakipler kırmızı (B). Düelloda (1v1) tek rakip vardır ve eski antrenman rakibiyle aynı davranır.
 // Her bot en yakın görünen rakibi (oyuncu ya da rakip bot) seçer; kimseyi görmüyorsa yol ızgarasıyla en yakın rakibi arar.
 // Takım arkadaşına hasar yok. Botlar birbirini de vurur: aynı mermi izi (traceBullet), aynı duvar/kasa kuralları.
-const BOT_NAMES = [
-  'Vortex', 'Kaya_07', 'NightOwl', 'Mert', 'Luna', 'Ghost', 'Atlas', 'Zeynep', 'Blaze', 'Kenzo',
-  'Deniz', 'Nova', 'Raven', 'Emir', 'Sparrow', 'Talon', 'Elif', 'Orion', 'Pixel', 'Baran',
-  'Mira', 'Echo', 'Cyrus', 'Defne', 'Rogue', 'Arda', 'Yuki', 'Falcon', 'Selin', 'Drift',
-  'Kerem', 'Ivy', 'Nomad', 'Ece', 'Jolt', 'Onur', 'Zara', 'Comet', 'Ilgaz', 'Cobra',
-  'Leo', 'Asya', 'Storm', 'Can_34', 'Frost', 'Lina', 'Wolfie', 'Ayaz', 'Rio', 'Shade',
-  'Melis', 'Tundra', 'Koray', 'Nika', 'Bolt', 'Efe', 'Hexa', 'Duman', 'Sora', 'Kuzey',
-  'Mavi_9', 'Quill', 'Tarık', 'Juno', 'Poyraz', 'Sky', 'Lara', 'Ozzy', 'Bora', 'Kiro',
+// Bot isimleri: herkesin gördüğü uluslararası takma adlar + oyuncunun diline göre yerel isimler
+// (İngilizce giren Jake/Emma görür, Türkçe giren Mert/Zeynep; gerçek online oyunlardaki karışık lobi hissi)
+const GAMER_TAGS = [
+  'Vortex', 'NightOwl', 'Ghost', 'Atlas', 'Blaze', 'Kenzo', 'Nova', 'Raven', 'Sparrow', 'Talon',
+  'Orion', 'Pixel', 'Echo', 'Cyrus', 'Rogue', 'Yuki', 'Falcon', 'Drift', 'Nomad', 'Jolt',
+  'Comet', 'Cobra', 'Storm', 'Frost', 'Wolfie', 'Shade', 'Tundra', 'Bolt', 'Hexa', 'Sora',
+  'Quill', 'Juno', 'Sky', 'Ozzy', 'Kiro', 'Viper', 'Zed', 'Rex_99', 'Lynx', 'Ash',
 ];
+const LOCAL_NAMES = {
+  tr: ['Mert', 'Zeynep', 'Kaya_07', 'Deniz', 'Emir', 'Elif', 'Baran', 'Defne', 'Arda', 'Selin', 'Kerem', 'Ece', 'Onur', 'Ilgaz', 'Asya', 'Can_34', 'Ayaz', 'Melis', 'Koray', 'Efe', 'Duman', 'Kuzey', 'Mavi_9', 'Tarık', 'Poyraz', 'Bora', 'Lara', 'Yiğit', 'Ada', 'Cem'],
+  en: ['Jake', 'Emma', 'Liam', 'Olivia', 'Noah', 'Ava', 'Mason', 'Chloe', 'Ethan', 'Mia', 'Tyler', 'Grace', 'Ryan', 'Lily', 'Dylan', 'Zoe', 'Logan', 'Ruby', 'Caleb', 'Ellie', 'Josh_22', 'Max', 'Sam', 'Ben', 'Kayla', 'Owen', 'Jack', 'Amber', 'Luke', 'Nate'],
+  es: ['Diego', 'Lucía', 'Mateo', 'Sofía', 'Pablo', 'Valeria', 'Javi', 'Carla', 'Hugo', 'Elena', 'Álvaro', 'Paula', 'Sergio', 'Marta', 'Nico', 'Alba', 'Iker', 'Lola', 'Rafa', 'Inés', 'Dani_10', 'Bruno', 'Irene', 'Leo', 'Noa', 'Adrián', 'Sara', 'Toni', 'Vega', 'Marcos'],
+  pt: ['João', 'Ana', 'Pedro', 'Beatriz', 'Lucas', 'Mariana', 'Gabriel', 'Júlia', 'Rafael', 'Larissa', 'Thiago', 'Camila', 'Bruno', 'Letícia', 'Gui_77', 'Isabela', 'Caio', 'Bianca', 'Davi', 'Lívia', 'Enzo', 'Clara', 'Vini', 'Rita', 'Tiago', 'Inês', 'Rui', 'Lara', 'Duda', 'Igor'],
+  de: ['Lukas', 'Lena', 'Jonas', 'Mia', 'Leon', 'Hannah', 'Felix', 'Lea', 'Paul', 'Emilia', 'Finn', 'Marie', 'Elias', 'Lina', 'Ben', 'Klara', 'Tim_04', 'Jana', 'Niklas', 'Frieda', 'Max', 'Greta', 'Moritz', 'Ida', 'Jan', 'Pia', 'Henrik', 'Nele', 'Ole', 'Tom'],
+  fr: ['Lucas', 'Chloé', 'Hugo', 'Léa', 'Louis', 'Manon', 'Théo', 'Camille', 'Jules', 'Inès', 'Nathan', 'Zoé', 'Enzo', 'Lola', 'Raphaël', 'Jade', 'Tom_13', 'Clara', 'Arthur', 'Lina', 'Maxime', 'Alice', 'Noé', 'Elsa', 'Gabin', 'Margaux', 'Axel', 'Romane', 'Malo', 'Anaïs'],
+};
+// Maç başına isim listesi: yaklaşık yarı yerel, yarı takma ad, karışık sırada
+function botNamePool() {
+  const local = shuffle((LOCAL_NAMES[LANG] || LOCAL_NAMES.en).slice());
+  const tags = shuffle(GAMER_TAGS.slice());
+  const out = [];
+  while (local.length || tags.length) {
+    if (local.length && (Math.random() < 0.5 || !tags.length)) out.push(local.pop()); else out.push(tags.pop());
+  }
+  return out;
+}
 const TEAM_WIN = { 1: CFG.winKills, 3: 20, 5: 30 };
 const TM = { on: false, size: 1, win: CFG.winKills, bots: [], ents: [], pool: [], score: { A: 0, B: 0 }, fields: new Map(), clock: 0, navBudget: 0, snd: 0, log: [] };
 // Oyuncunun kendisi, botlarla aynı arayüzle (hedef seçimi, hasar, skor tablosu)
@@ -2944,7 +2961,7 @@ function tmStart() {
   tmHide();
   // Her maçta rastgele, birbirinden farklı isimler (oyuncunun adıyla aynısı çıkmaz)
   const mine = myName().toLowerCase();
-  const names = shuffle(BOT_NAMES.filter((n) => n.toLowerCase() !== mine));
+  const names = botNamePool().filter((n) => n.toLowerCase() !== mine);
   const n = TM.size;
   TM.bots = [];
   for (let i = 0; i < 2 * n - 1; i++) TM.bots.push(tmMakeBot(i, names[i], i < n - 1 ? 'A' : 'B', n === 1 ? 0 : [0, 1, 2][Math.random() * 3 | 0]));
