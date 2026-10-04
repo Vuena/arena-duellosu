@@ -146,6 +146,8 @@ body.touch #score{pointer-events:auto}
 @media (max-width:1050px){.wp span{display:none}}
 #feed{position:absolute;top:calc(max(10px,env(safe-area-inset-top)) + 54px);right:max(12px,env(safe-area-inset-right));display:flex;flex-direction:column;align-items:flex-end;gap:4px}
 .fe{display:flex;align-items:center;gap:7px;padding:4px 9px;border-radius:7px;background:rgba(10,11,14,.6);font-size:13px;font-weight:700;white-space:nowrap;transition:opacity .4s;border:1px solid rgba(255,77,87,.85)}
+.fe.other{border-color:var(--line)}
+body.boardOn #touch .tb{opacity:.3}
 .fe .blue{color:var(--me)}.fe .red{color:var(--danger)}
 .fe svg{height:13px;width:auto;fill:#fff}
 #board{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,calc(100% - 32px));padding:14px 16px;background:rgba(14,15,20,.88)}
@@ -156,6 +158,13 @@ body.touch #score{pointer-events:auto}
 #board td{padding:8px 6px;text-align:right;font-size:16px;font-weight:700;border-top:1px solid var(--line)}
 #board tr.me td:first-child{color:var(--me)}
 #board tr.en td:first-child{color:var(--danger)}
+#board tr.tm td:first-child{color:#8cc8ff}
+#board tr.me td{background:rgba(124,196,255,.08)}
+#board tr.th td{font-size:12px;letter-spacing:.8px;text-transform:uppercase;padding-top:10px;border-top:0}
+#board tr.th.blue td{color:var(--me)}#board tr.th.red td{color:var(--danger)}
+#board.team{max-height:calc(100% - 20px);overflow:auto}
+#board.team td{padding:5px 6px;font-size:14px}
+@media (max-height:440px){#board{padding:8px 12px}#board h3{margin-bottom:2px}#board td{padding:4px 6px;font-size:14px}#board.team td{padding:2px 6px;font-size:12px}#board.team tr.th td{padding-top:5px;font-size:11px}#board th{padding:2px 6px}}
 #pauseBtn{position:absolute;top:max(10px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));width:44px;height:44px;pointer-events:auto;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px}
 #pauseBtn i{width:5px;height:16px;border-radius:2px;background:#fff}
 body.touch #hp{top:max(10px,env(safe-area-inset-top));bottom:auto;padding:6px 10px}
@@ -176,7 +185,8 @@ body.touch .fe{font-size:11px;padding:3px 7px}
 #stick{position:absolute;width:116px;height:116px;margin:-58px 0 0 -58px;border-radius:50%;border:2px solid rgba(255,255,255,.28);background:rgba(255,255,255,.06);opacity:.45}
 #stick.on{opacity:1}
 #knob{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(255,255,255,.4)}
-.tb{position:absolute;pointer-events:auto;touch-action:none;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(20,22,28,.4);color:#fff;font:800 12px/1 system-ui,sans-serif;letter-spacing:.4px;display:flex;align-items:center;justify-content:center}
+.tb *,.wp *{pointer-events:none}
+.tb{position:absolute;pointer-events:auto;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:none;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(20,22,28,.4);color:#fff;font:800 12px/1 system-ui,sans-serif;letter-spacing:.4px;display:flex;align-items:center;justify-content:center}
 .tb.on{background:rgba(255,255,255,.28)}
 .tb.act{background:rgba(255,138,61,.55);border-color:var(--accent)}
 #tFire{width:88px;height:88px;right:calc(26px + env(safe-area-inset-right));bottom:calc(60px + env(safe-area-inset-bottom));background:rgba(255,77,87,.4);border-color:rgba(255,140,140,.75);font-size:13px}
@@ -208,6 +218,8 @@ body:not(.zmode) .zombie-only{display:none!important}
 body.zmode .duel-only{display:none!important}
 body.portal .online-only{display:none!important}
 body.portal #btnPractice{font-size:20px;padding:16px 18px;margin-top:16px}
+.sizeNote{font-size:12px;color:var(--muted);margin-top:6px;text-align:left;line-height:1.4}
+@media (max-height:440px){.sizeNote{display:none}}
 #loadErr{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:50;background:var(--danger);color:#fff;padding:10px 16px;border-radius:10px;font-weight:700}
 </style>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -221,7 +233,7 @@ body.portal #btnPractice{font-size:20px;padding:16px 18px;margin-top:16px}
   <div id="zPU" class="zombie-only"></div>
   <div id="zPrompt" class="hidden"></div>
   <div id="zPop" class="zombie-only"></div>
-  <div id="score" class="box duel-only"><span data-i18n="score.you">You</span><b id="scA">0</b><span class="dash">:</span><b id="scB">0</b><span id="scEn" data-i18n="enemy">Opponent</span></div>
+  <div id="score" class="box duel-only"><span id="scMe" data-i18n="score.you">You</span><b id="scA">0</b><span class="dash">:</span><b id="scB">0</b><span id="scEn" data-i18n="enemy">Opponent</span></div>
   <div id="msg"></div>
   <div id="feed"></div>
   <div id="scope"><i></i><i></i></div>
@@ -256,6 +268,9 @@ body.portal #btnPractice{font-size:20px;padding:16px 18px;margin-top:16px}
     <input type="text" id="nameIn" class="online-only" maxlength="14" placeholder="Your name" data-i18n-ph="main.name" autocomplete="off" spellcheck="false">
     <div class="lbl" data-i18n="main.mode">Mode</div>
     <div class="chips maps" id="modeChips" style="grid-template-columns:1fr 1fr"></div>
+    <div class="duel-only"><div class="lbl" id="sizeLbl">Match</div>
+    <div class="chips maps" id="sizeChips"></div>
+    <p class="sizeNote online-only" data-i18n="main.sizeNote"></p></div>
     <div class="duel-only"><div class="lbl" data-i18n="main.map">Map</div>
     <div class="chips maps" id="mapChips"></div></div>
     <button class="b wide online-only" id="btnJoin" data-i18n="main.join">Join game</button>
@@ -355,17 +370,17 @@ if (PORTAL) document.body.classList.add('portal');
 const STR = {
   en: {
     'title': "Arena Duel", 'h1': "Arena <span>Duel</span>",
-    'score.you': "You", 'enemy': "Opponent", 'player': "Player", 'bot': "Bot", 'hud.hp': "HP", 'board.title': "Scoreboard", 'menu': "Menu",
+    'score.you': "You", 'enemy': "Opponent", 'player': "Player", 'hud.hp': "HP", 'board.title': "Scoreboard", 'menu': "Menu",
     'touch.fire': "FIRE", 'touch.aim': "AIM", 'touch.jump': "JUMP", 'touch.crouch': "CROUCH", 'touch.use': "USE", 'touch.gren': "GRENADE", 'touch.monkey': "MONKEY", 'touch.heavy': "HEAVY", 'touch.scope': "SCOPE",
     'main.subDuel': "One-on-one FPS with a friend. First to 10 kills wins.",
-    'main.subDuelSolo': "One-on-one FPS against a bot. First to 10 kills wins.",
+    'main.subDuelSolo': "FPS against AI players: a 1v1 duel or 3v3 and 5v5 team battles.",
     'main.subZombie': "Zombie mode: survive wave after wave of zombies.",
     'main.name': "Your name", 'main.mode': "Mode", 'main.map': "Map",
     'main.join': "Join game", 'main.practice': "Practice solo", 'main.playSolo': "Play solo", 'main.play': "Play",
     'main.hintDuel': "You both press <b>Join game</b> and land in the same match. Whoever joins first picks the map. Choose your weapon in the <b>Esc</b> menu during the game.",
     'main.hintZombie': "You both press <b>Join game</b> and fight the zombies together. You can also play solo.",
     'main.rec': "Best · solo: round {solo} · co-op: round {coop}", 'main.recSolo': "Best: round {solo}",
-    'mode.duel': "Duel", 'mode.duelInfo': "1v1 against a friend", 'mode.duelInfoSolo': "1v1 against a bot",
+    'mode.duel': "Duel", 'mode.duelInfo': "1v1 against a friend", 'mode.duelInfoSolo': "1v1 or teams vs AI players",
     'mode.zombie': "Zombies", 'mode.zombieInfo': "Team up against zombies", 'mode.zombieInfoSolo': "Survive the waves",
     'lobby.title': "Waiting for your friend", 'lobby.sub': "The match starts when your friend presses <b>Join game</b> too.",
     'lobby.mode': "Mode: <b>Zombies</b>", 'lobby.map': "Map: <b>{map}</b>", 'lobby.opening': "Opening room…", 'lobby.waiting': "Waiting…",
@@ -389,7 +404,7 @@ const STR = {
     'end.win': "You win!", 'end.lose': "You lose", 'end.again': "Rematch", 'end.menu': "Main menu", 'end.over': "Game over",
     'end.newRec': "New record!", 'end.rec': "Best: round {r}", 'end.stats': "{k} kills · {p} points",
     'rotate': "Turn your phone sideways to play",
-    'msg.start': "Match on! First to {n} kills wins", 'msg.practice': "Practice: shoot the bot!", 'msg.noAmmo': "Out of ammo",
+    'msg.start': "Match on! First to {n} kills wins", 'msg.practice': "Duel vs {name}! First to {n} kills wins", 'msg.noAmmo': "Out of ammo",
     'role.0': "Powerful", 'role.1': "Accurate", 'role.2': "Fast", 'role.3': "Close range", 'role.4': "Sniper",
     'w.ak.info': "Powerful, automatic. Heavy recoil.", 'w.m4.info': "Accurate, low recoil.", 'w.mp5.info': "Very fast fire, good on the move.",
     'w.shotgun': "Shotgun", 'w.shotgun.info': "One-shot kill up close, weak at range.", 'w.awp.info': "Every hit kills. Inaccurate without the scope.",
@@ -459,20 +474,21 @@ const STR = {
     'rules.z13solo': "If you go down, the game is over (you can't get back up without Second Wind).",
     'rules.z13coop': "While down you can still fire your pistol and crawl slowly. If your friend comes over and holds <b>E</b>, you're back up in 3 seconds. Anyone not revived within 30 seconds dies and respawns next round. If you both go down, the game is over.",
     'bill.new': "NEW", 'bill.season': "SEASON", 'bill.place': "Kadikoy Altiyol", 'bill.sale': "50% OFF",
+    'main.size': "Match", 'main.sizePractice': "Practice match", 'main.sizeNote': "Team matches are played solo with AI players. Online games with a friend are always 1v1.", 'size.1': "Duel 1v1", 'size.3': "Team 3v3", 'size.5': "Team 5v5", 'size.1i': "First to 10 kills", 'size.teamI': "First team to {n}", 'team.blue': "Blue", 'team.red': "Red", 'msg.team': "{n}v{n} team battle! First team to {k} kills wins", 'end.blueWins': "Blue team wins!", 'end.redWins': "Red team wins!", 'end.winners': "Winners: {names}", 'end.mvp': "MVP: {name} ({k} kills)", 'end.vs': "Opponent: {name}", 'board.kd': "K/D", 'board.teamTo': "first team to {n} kills wins", 'rules.t1': "{room} · Map: <b>{map}</b> · <b>{n}v{n}</b> with AI teammates: the first team to <b>{k} kills</b> wins. No friendly fire.",
   },
   tr: {
     'title': "Arena Düellosu", 'h1': "Arena <span>Düellosu</span>",
-    'score.you': "Sen", 'enemy': "Rakip", 'player': "Oyuncu", 'bot': "Robot", 'hud.hp': "CAN", 'board.title': "Skor tablosu", 'menu': "Menü",
+    'score.you': "Sen", 'enemy': "Rakip", 'player': "Oyuncu", 'hud.hp': "CAN", 'board.title': "Skor tablosu", 'menu': "Menü",
     'touch.fire': "ATEŞ", 'touch.aim': "NİŞAN", 'touch.jump': "ZIPLA", 'touch.crouch': "EĞİL", 'touch.use': "AL", 'touch.gren': "BOMBA", 'touch.monkey': "MAYMUN", 'touch.heavy': "GÜÇLÜ", 'touch.scope': "DÜRBÜN",
     'main.subDuel': "Arkadaşınla bire bir FPS. İlk 10 leşi alan kazanır.",
-    'main.subDuelSolo': "Robota karşı bire bir FPS. İlk 10 leşi alan kazanır.",
+    'main.subDuelSolo': "Yapay zekâ oyunculara karşı FPS: bire bir düello ya da 3v3 ve 5v5 takım savaşı.",
     'main.subZombie': "Zombi modu: dalga dalga gelen zombilere karşı hayatta kal.",
     'main.name': "Adın", 'main.mode': "Mod", 'main.map': "Harita",
     'main.join': "Oyuna katıl", 'main.practice': "Tek başına antrenman", 'main.playSolo': "Tek başına oyna", 'main.play': "Oyna",
     'main.hintDuel': "İkiniz de <b>Oyuna katıl</b>'a basın, aynı maça girersiniz. Haritayı önce giren seçer. Silahını oyunda <b>Esc</b> menüsünden seçersin.",
     'main.hintZombie': "İkiniz de <b>Oyuna katıl</b>'a basın, birlikte zombilere karşı oynarsınız. Tek başına da oynayabilirsin.",
     'main.rec': "Rekor · tek başına: raunt {solo} · birlikte: raunt {coop}", 'main.recSolo': "Rekor · tek başına: raunt {solo}",
-    'mode.duel': "Düello", 'mode.duelInfo': "1v1, arkadaşına karşı", 'mode.duelInfoSolo': "1v1, robota karşı",
+    'mode.duel': "Düello", 'mode.duelInfo': "1v1, arkadaşına karşı", 'mode.duelInfoSolo': "1v1 ya da takım, yapay zekâya karşı",
     'mode.zombie': "Zombi", 'mode.zombieInfo': "Birlikte zombilere karşı", 'mode.zombieInfoSolo': "Zombilere karşı hayatta kal",
     'lobby.title': "Arkadaşın bekleniyor", 'lobby.sub': "Arkadaşın da <b>Oyuna katıl</b>'a basınca maç başlar.",
     'lobby.mode': "Mod: <b>Zombi</b>", 'lobby.map': "Harita: <b>{map}</b>", 'lobby.opening': "Oda açılıyor…", 'lobby.waiting': "Bekleniyor…",
@@ -496,7 +512,7 @@ const STR = {
     'end.win': "Kazandın!", 'end.lose': "Kaybettin", 'end.again': "Rövanş", 'end.menu': "Ana menü", 'end.over': "Oyun bitti",
     'end.newRec': "Yeni rekor!", 'end.rec': "Rekor: raunt {r}", 'end.stats': "{k} leş · {p} puan",
     'rotate': "Oynamak için telefonu yan çevir",
-    'msg.start': "Maç başladı! İlk {n} leş kazanır", 'msg.practice': "Antrenman: robotu vur!", 'msg.noAmmo': "Mermi bitti",
+    'msg.start': "Maç başladı! İlk {n} leş kazanır", 'msg.practice': "{name} ile düello! İlk {n} leşi alan kazanır", 'msg.noAmmo': "Mermi bitti",
     'role.0': "Güçlü", 'role.1': "İsabetli", 'role.2': "Hızlı", 'role.3': "Yakın mesafe", 'role.4': "Keskin nişancı",
     'w.ak.info': "Güçlü, otomatik. Çok teper.", 'w.m4.info': "İsabetli, az teper.", 'w.mp5.info': "Çok hızlı ateş, koşarken iyi.",
     'w.shotgun': "Pompalı", 'w.shotgun.info': "Yakında tek atar, uzakta zayıf.", 'w.awp.info': "Her vuruş tek atar. Dürbünsüz sapar.",
@@ -566,19 +582,20 @@ const STR = {
     'rules.z13solo': "Yere düşersen oyun biter (Second Wind yoksa kendini kaldıramazsın).",
     'rules.z13coop': "Yere düşünce tabancayla ateş edip yavaşça sürünebilirsin. Arkadaşın yanına gelip <b>E</b>'ye basılı tutarsa 3 saniyede kalkarsın. 30 saniyede kaldırılmayan ölür, sonraki rauntta doğar. İkiniz de düşerseniz oyun biter.",
     'bill.new': "YENİ", 'bill.season': "SEZON", 'bill.place': "Kadıköy Altıyol", 'bill.sale': "%50 İNDİRİM",
+    'main.size': "Maç", 'main.sizePractice': "Antrenman maçı", 'main.sizeNote': "Takım maçları yapay zekâ oyuncularla tek başına oynanır. Arkadaşınla online oyun hep 1v1'dir.", 'size.1': "Düello 1v1", 'size.3': "Takım 3v3", 'size.5': "Takım 5v5", 'size.1i': "İlk 10 leş kazanır", 'size.teamI': "İlk {n} leşi alan takım", 'team.blue': "Mavi", 'team.red': "Kırmızı", 'msg.team': "{n}v{n} takım savaşı! İlk {k} leşi alan takım kazanır", 'end.blueWins': "Mavi takım kazandı!", 'end.redWins': "Kırmızı takım kazandı!", 'end.winners': "Kazananlar: {names}", 'end.mvp': "Maçın yıldızı: {name} ({k} leş)", 'end.vs': "Rakip: {name}", 'board.kd': "L/Ö", 'board.teamTo': "ilk {n} leşi alan takım kazanır", 'rules.t1': "{room} · Harita: <b>{map}</b> · Yapay zekâ takım arkadaşlarıyla <b>{n}v{n}</b>: ilk <b>{k} leşi</b> alan takım kazanır. Takım arkadaşına hasar verilmez.",
   },
   es: {
-    'score.you': "Tú", 'enemy': "Rival", 'player': "Jugador", 'bot': "Robot", 'hud.hp': "VIDA", 'board.title': "Marcador", 'menu': "Menú",
+    'score.you': "Tú", 'enemy': "Rival", 'player': "Jugador", 'hud.hp': "VIDA", 'board.title': "Marcador", 'menu': "Menú",
     'touch.fire': "DISPARO", 'touch.aim': "APUNTAR", 'touch.jump': "SALTAR", 'touch.crouch': "AGACHAR", 'touch.use': "USAR", 'touch.gren': "GRANADA", 'touch.monkey': "MONO", 'touch.heavy': "FUERTE", 'touch.scope': "MIRA",
     'main.subDuel': "FPS uno contra uno con un amigo. Gana quien llegue primero a 10 bajas.",
-    'main.subDuelSolo': "FPS uno contra uno contra un robot. Gana quien llegue primero a 10 bajas.",
+    'main.subDuelSolo': "FPS contra jugadores IA: duelo 1v1 o batallas por equipos 3v3 y 5v5.",
     'main.subZombie': "Modo zombi: sobrevive a oleada tras oleada de zombis.",
     'main.name': "Tu nombre", 'main.mode': "Modo", 'main.map': "Mapa",
     'main.join': "Unirse a partida", 'main.practice': "Practicar solo", 'main.playSolo': "Jugar solo", 'main.play': "Jugar",
     'main.hintDuel': "Pulsad los dos <b>Unirse a partida</b> y entraréis en la misma partida. Quien entra primero elige el mapa. Elige tu arma en el menú <b>Esc</b> durante la partida.",
     'main.hintZombie': "Pulsad los dos <b>Unirse a partida</b> y lucharéis juntos contra los zombis. También puedes jugar solo.",
     'main.rec': "Récord · solo: ronda {solo} · cooperativo: ronda {coop}", 'main.recSolo': "Récord: ronda {solo}",
-    'mode.duel': "Duelo", 'mode.duelInfo': "1v1 contra un amigo", 'mode.duelInfoSolo': "1v1 contra un robot",
+    'mode.duel': "Duelo", 'mode.duelInfo': "1v1 contra un amigo", 'mode.duelInfoSolo': "1v1 o equipos contra la IA",
     'mode.zombie': "Zombis", 'mode.zombieInfo': "Juntos contra los zombis", 'mode.zombieInfoSolo': "Sobrevive a las oleadas",
     'lobby.title': "Esperando a tu amigo", 'lobby.sub': "La partida empieza cuando tu amigo también pulse <b>Unirse a partida</b>.",
     'lobby.mode': "Modo: <b>Zombis</b>", 'lobby.map': "Mapa: <b>{map}</b>", 'lobby.opening': "Abriendo sala…", 'lobby.waiting': "Esperando…",
@@ -602,7 +619,7 @@ const STR = {
     'end.win': "¡Has ganado!", 'end.lose': "Has perdido", 'end.again': "Revancha", 'end.menu': "Menú principal", 'end.over': "Fin de la partida",
     'end.newRec': "¡Nuevo récord!", 'end.rec': "Récord: ronda {r}", 'end.stats': "{k} bajas · {p} puntos",
     'rotate': "Gira el teléfono en horizontal para jugar",
-    'msg.start': "¡Empieza la partida! Gana quien llegue a {n} bajas", 'msg.practice': "Práctica: ¡dispara al robot!", 'msg.noAmmo': "Sin munición",
+    'msg.start': "¡Empieza la partida! Gana quien llegue a {n} bajas", 'msg.practice': "¡Duelo contra {name}! Gana quien llegue primero a {n} bajas", 'msg.noAmmo': "Sin munición",
     'role.0': "Potente", 'role.1': "Precisa", 'role.2': "Rápida", 'role.3': "Corta distancia", 'role.4': "Francotirador",
     'w.ak.info': "Potente, automático. Mucho retroceso.", 'w.m4.info': "Preciso, poco retroceso.", 'w.mp5.info': "Disparo muy rápido, buena en movimiento.",
     'w.shotgun': "Escopeta", 'w.shotgun.info': "Mata de un tiro de cerca, débil de lejos.", 'w.awp.info': "Cada impacto mata. Imprecisa sin mira.",
@@ -671,19 +688,20 @@ const STR = {
     'rules.z13solo': "Si caes, se acaba la partida (sin Second Wind no puedes levantarte).",
     'rules.z13coop': "En el suelo aún puedes disparar la pistola y arrastrarte despacio. Si tu amigo se acerca y mantiene <b>E</b>, te levantas en 3 segundos. Quien no sea reanimado en 30 segundos muere y reaparece en la próxima ronda. Si caéis los dos, se acaba la partida.",
     'bill.new': "NUEVA", 'bill.season': "TEMPORADA", 'bill.sale': "50% DTO.",
+    'main.size': "Partida", 'main.sizePractice': "Partida de práctica", 'main.sizeNote': "Las partidas por equipos se juegan en solitario con jugadores IA. Online con un amigo siempre es 1v1.", 'size.1': "Duelo 1v1", 'size.3': "Equipos 3v3", 'size.5': "Equipos 5v5", 'size.1i': "Primero a 10 bajas", 'size.teamI': "Primer equipo a {n}", 'team.blue': "Azul", 'team.red': "Rojo", 'msg.team': "¡Batalla por equipos {n}v{n}! Gana el primer equipo en llegar a {k} bajas", 'end.blueWins': "¡Gana el equipo azul!", 'end.redWins': "¡Gana el equipo rojo!", 'end.winners': "Ganadores: {names}", 'end.mvp': "MVP: {name} ({k} bajas)", 'end.vs': "Rival: {name}", 'board.kd': "K/D", 'board.teamTo': "gana el primer equipo en llegar a {n} bajas", 'rules.t1': "{room} · Mapa: <b>{map}</b> · <b>{n}v{n}</b> con compañeros IA: gana el primer equipo en llegar a <b>{k} bajas</b>. Sin fuego amigo.",
   },
   pt: {
-    'score.you': "Você", 'enemy': "Rival", 'player': "Jogador", 'bot': "Robô", 'hud.hp': "VIDA", 'board.title': "Placar", 'menu': "Menu",
+    'score.you': "Você", 'enemy': "Rival", 'player': "Jogador", 'hud.hp': "VIDA", 'board.title': "Placar", 'menu': "Menu",
     'touch.fire': "ATIRAR", 'touch.aim': "MIRAR", 'touch.jump': "PULAR", 'touch.crouch': "AGACHAR", 'touch.use': "USAR", 'touch.gren': "GRANADA", 'touch.monkey': "MACACO", 'touch.heavy': "FORTE", 'touch.scope': "LUNETA",
     'main.subDuel': "FPS um contra um com um amigo. Quem fizer 10 abates primeiro vence.",
-    'main.subDuelSolo': "FPS um contra um contra um robô. Quem fizer 10 abates primeiro vence.",
+    'main.subDuelSolo': "FPS contra jogadores de IA: duelo 1v1 ou batalhas em equipe 3v3 e 5v5.",
     'main.subZombie': "Modo zumbi: sobreviva a ondas e mais ondas de zumbis.",
     'main.name': "Seu nome", 'main.mode': "Modo", 'main.map': "Mapa",
     'main.join': "Entrar no jogo", 'main.practice': "Treinar sozinho", 'main.playSolo': "Jogar sozinho", 'main.play': "Jogar",
     'main.hintDuel': "Vocês dois apertam <b>Entrar no jogo</b> e caem na mesma partida. Quem entra primeiro escolhe o mapa. Escolha sua arma no menu <b>Esc</b> durante o jogo.",
     'main.hintZombie': "Vocês dois apertam <b>Entrar no jogo</b> e enfrentam os zumbis juntos. Você também pode jogar sozinho.",
     'main.rec': "Recorde · sozinho: rodada {solo} · cooperativo: rodada {coop}", 'main.recSolo': "Recorde: rodada {solo}",
-    'mode.duel': "Duelo", 'mode.duelInfo': "1v1 contra um amigo", 'mode.duelInfoSolo': "1v1 contra um robô",
+    'mode.duel': "Duelo", 'mode.duelInfo': "1v1 contra um amigo", 'mode.duelInfoSolo': "1v1 ou equipes contra a IA",
     'mode.zombie': "Zumbis", 'mode.zombieInfo': "Juntos contra os zumbis", 'mode.zombieInfoSolo': "Sobreviva às ondas",
     'lobby.title': "Esperando seu amigo", 'lobby.sub': "A partida começa quando seu amigo também apertar <b>Entrar no jogo</b>.",
     'lobby.mode': "Modo: <b>Zumbis</b>", 'lobby.map': "Mapa: <b>{map}</b>", 'lobby.opening': "Abrindo sala…", 'lobby.waiting': "Aguardando…",
@@ -707,7 +725,7 @@ const STR = {
     'end.win': "Você venceu!", 'end.lose': "Você perdeu", 'end.again': "Revanche", 'end.menu': "Menu principal", 'end.over': "Fim de jogo",
     'end.newRec': "Novo recorde!", 'end.rec': "Recorde: rodada {r}", 'end.stats': "{k} abates · {p} pontos",
     'rotate': "Gire o celular na horizontal para jogar",
-    'msg.start': "A partida começou! Quem fizer {n} abates vence", 'msg.practice': "Treino: atire no robô!", 'msg.noAmmo': "Sem munição",
+    'msg.start': "A partida começou! Quem fizer {n} abates vence", 'msg.practice': "Duelo contra {name}! Quem fizer {n} abates primeiro vence", 'msg.noAmmo': "Sem munição",
     'role.0': "Potente", 'role.1': "Precisa", 'role.2': "Rápida", 'role.3': "Curta distância", 'role.4': "Atirador de elite",
     'w.ak.info': "Potente, automática. Recuo forte.", 'w.m4.info': "Precisa, pouco recuo.", 'w.mp5.info': "Tiro muito rápido, boa em movimento.",
     'w.shotgun': "Escopeta", 'w.shotgun.info': "Mata com um tiro de perto, fraca de longe.", 'w.awp.info': "Cada acerto mata. Imprecisa sem luneta.",
@@ -776,19 +794,20 @@ const STR = {
     'rules.z13solo': "Se você cair, o jogo acaba (sem Second Wind você não se levanta).",
     'rules.z13coop': "Caído, você ainda pode atirar com a pistola e rastejar devagar. Se seu amigo vier e segurar <b>E</b>, você levanta em 3 segundos. Quem não for reanimado em 30 segundos morre e renasce na próxima rodada. Se os dois caírem, o jogo acaba.",
     'bill.new': "NOVA", 'bill.season': "TEMPORADA", 'bill.sale': "50% OFF",
+    'main.size': "Partida", 'main.sizePractice': "Partida de treino", 'main.sizeNote': "As partidas em equipe são jogadas sozinho com jogadores de IA. Online com um amigo é sempre 1v1.", 'size.1': "Duelo 1v1", 'size.3': "Equipes 3v3", 'size.5': "Equipes 5v5", 'size.1i': "Primeiro a 10 abates", 'size.teamI': "Primeira equipe a {n}", 'team.blue': "Azul", 'team.red': "Vermelho", 'msg.team': "Batalha em equipe {n}v{n}! A primeira equipe a fazer {k} abates vence", 'end.blueWins': "A equipe azul venceu!", 'end.redWins': "A equipe vermelha venceu!", 'end.winners': "Vencedores: {names}", 'end.mvp': "MVP: {name} ({k} abates)", 'end.vs': "Rival: {name}", 'board.kd': "K/D", 'board.teamTo': "a primeira equipe a fazer {n} abates vence", 'rules.t1': "{room} · Mapa: <b>{map}</b> · <b>{n}v{n}</b> com colegas de IA: a primeira equipe a fazer <b>{k} abates</b> vence. Sem fogo amigo.",
   },
   de: {
-    'score.you': "Du", 'enemy': "Gegner", 'player': "Spieler", 'bot': "Bot", 'hud.hp': "HP", 'board.title': "Punktestand", 'menu': "Menü",
+    'score.you': "Du", 'enemy': "Gegner", 'player': "Spieler", 'hud.hp': "HP", 'board.title': "Punktestand", 'menu': "Menü",
     'touch.fire': "FEUER", 'touch.aim': "ZIELEN", 'touch.jump': "SPRUNG", 'touch.crouch': "DUCKEN", 'touch.use': "NEHMEN", 'touch.gren': "GRANATE", 'touch.monkey': "AFFE", 'touch.heavy': "STARK", 'touch.scope': "ZOOM",
     'main.subDuel': "1-gegen-1-Shooter mit einem Freund. Wer zuerst 10 Kills hat, gewinnt.",
-    'main.subDuelSolo': "1-gegen-1-Shooter gegen einen Bot. Wer zuerst 10 Kills hat, gewinnt.",
+    'main.subDuelSolo': "Shooter gegen KI-Spieler: 1-gegen-1-Duell oder Teamkämpfe 3v3 und 5v5.",
     'main.subZombie': "Zombie-Modus: Überlebe Welle um Welle von Zombies.",
     'main.name': "Dein Name", 'main.mode': "Modus", 'main.map': "Karte",
     'main.join': "Spiel beitreten", 'main.practice': "Allein trainieren", 'main.playSolo': "Allein spielen", 'main.play': "Spielen",
     'main.hintDuel': "Drückt beide auf <b>Spiel beitreten</b>, dann landet ihr im selben Match. Wer zuerst beitritt, wählt die Karte. Deine Waffe wählst du im Spiel im <b>Esc</b>-Menü.",
     'main.hintZombie': "Drückt beide auf <b>Spiel beitreten</b> und kämpft gemeinsam gegen die Zombies. Du kannst auch allein spielen.",
     'main.rec': "Rekord · allein: Runde {solo} · zusammen: Runde {coop}", 'main.recSolo': "Rekord: Runde {solo}",
-    'mode.duel': "Duell", 'mode.duelInfo': "1v1 gegen einen Freund", 'mode.duelInfoSolo': "1v1 gegen einen Bot",
+    'mode.duel': "Duell", 'mode.duelInfo': "1v1 gegen einen Freund", 'mode.duelInfoSolo': "1v1 oder Teams gegen KI",
     'mode.zombie': "Zombies", 'mode.zombieInfo': "Gemeinsam gegen Zombies", 'mode.zombieInfoSolo': "Überlebe die Wellen",
     'lobby.title': "Warte auf deinen Freund", 'lobby.sub': "Das Match startet, sobald dein Freund auch auf <b>Spiel beitreten</b> drückt.",
     'lobby.mode': "Modus: <b>Zombies</b>", 'lobby.map': "Karte: <b>{map}</b>", 'lobby.opening': "Raum wird geöffnet…", 'lobby.waiting': "Warte…",
@@ -812,7 +831,7 @@ const STR = {
     'end.win': "Gewonnen!", 'end.lose': "Verloren", 'end.again': "Revanche", 'end.menu': "Hauptmenü", 'end.over': "Spiel vorbei",
     'end.newRec': "Neuer Rekord!", 'end.rec': "Rekord: Runde {r}", 'end.stats': "{k} Kills · {p} Punkte",
     'rotate': "Dreh dein Handy quer, um zu spielen",
-    'msg.start': "Das Match läuft! Wer zuerst {n} Kills hat, gewinnt", 'msg.practice': "Training: Schieß auf den Bot!", 'msg.noAmmo': "Keine Munition",
+    'msg.start': "Das Match läuft! Wer zuerst {n} Kills hat, gewinnt", 'msg.practice': "Duell gegen {name}! Wer zuerst {n} Kills hat, gewinnt", 'msg.noAmmo': "Keine Munition",
     'role.0': "Stark", 'role.1': "Präzise", 'role.2': "Schnell", 'role.3': "Nahkampf", 'role.4': "Scharfschütze",
     'w.ak.info': "Stark, vollautomatisch. Starker Rückstoß.", 'w.m4.info': "Präzise, wenig Rückstoß.", 'w.mp5.info': "Sehr hohe Feuerrate, gut in Bewegung.",
     'w.shotgun': "Schrotflinte", 'w.shotgun.info': "Aus der Nähe tödlich, auf Distanz schwach.", 'w.awp.info': "Jeder Treffer tötet. Ohne Zielfernrohr ungenau.",
@@ -881,19 +900,20 @@ const STR = {
     'rules.z13solo': "Wenn du zu Boden gehst, ist das Spiel vorbei (ohne Second Wind kannst du nicht wieder aufstehen).",
     'rules.z13coop': "Am Boden kannst du noch mit der Pistole schießen und langsam kriechen. Wenn dein Freund kommt und <b>E</b> hält, stehst du in 3 Sekunden wieder. Wer nicht innerhalb von 30 Sekunden wiederbelebt wird, stirbt und spawnt in der nächsten Runde. Wenn ihr beide am Boden seid, ist das Spiel vorbei.",
     'bill.new': "NEUE", 'bill.season': "SAISON", 'bill.sale': "50% RABATT",
+    'main.size': "Match", 'main.sizePractice': "Trainingsmatch", 'main.sizeNote': "Teammatches spielst du allein mit KI-Spielern. Online mit einem Freund ist es immer 1v1.", 'size.1': "Duell 1v1", 'size.3': "Team 3v3", 'size.5': "Team 5v5", 'size.1i': "Zuerst 10 Kills", 'size.teamI': "Erstes Team mit {n}", 'team.blue': "Blau", 'team.red': "Rot", 'msg.team': "{n}v{n}-Teamkampf! Das erste Team mit {k} Kills gewinnt", 'end.blueWins': "Team Blau gewinnt!", 'end.redWins': "Team Rot gewinnt!", 'end.winners': "Gewinner: {names}", 'end.mvp': "MVP: {name} ({k} Kills)", 'end.vs': "Gegner: {name}", 'board.kd': "K/D", 'board.teamTo': "das erste Team mit {n} Kills gewinnt", 'rules.t1': "{room} · Karte: <b>{map}</b> · <b>{n}v{n}</b> mit KI-Teamkollegen: Das erste Team mit <b>{k} Kills</b> gewinnt. Kein Eigenbeschuss.",
   },
   fr: {
-    'score.you': "Toi", 'enemy': "Adversaire", 'player': "Joueur", 'bot': "Robot", 'hud.hp': "PV", 'board.title': "Scores", 'menu': "Menu",
+    'score.you': "Toi", 'enemy': "Adversaire", 'player': "Joueur", 'hud.hp': "PV", 'board.title': "Scores", 'menu': "Menu",
     'touch.fire': "TIR", 'touch.aim': "VISER", 'touch.jump': "SAUT", 'touch.crouch': "BAISSER", 'touch.use': "PRENDRE", 'touch.gren': "GRENADE", 'touch.monkey': "SINGE", 'touch.heavy': "FORT", 'touch.scope': "LUNETTE",
     'main.subDuel': "FPS en un contre un avec un ami. Le premier à 10 éliminations gagne.",
-    'main.subDuelSolo': "FPS en un contre un contre un robot. Le premier à 10 éliminations gagne.",
+    'main.subDuelSolo': "FPS contre des joueurs IA : duel en 1v1 ou batailles en équipe 3v3 et 5v5.",
     'main.subZombie': "Mode zombies : survis à des vagues de zombies.",
     'main.name': "Ton nom", 'main.mode': "Mode", 'main.map': "Carte",
     'main.join': "Rejoindre une partie", 'main.practice': "S'entraîner seul", 'main.playSolo': "Jouer seul", 'main.play': "Jouer",
     'main.hintDuel': "Appuyez tous les deux sur <b>Rejoindre une partie</b> pour arriver dans le même match. Le premier arrivé choisit la carte. Choisis ton arme dans le menu <b>Échap</b> en jeu.",
     'main.hintZombie': "Appuyez tous les deux sur <b>Rejoindre une partie</b> pour affronter les zombies ensemble. Tu peux aussi jouer seul.",
     'main.rec': "Record · seul : manche {solo} · en coop : manche {coop}", 'main.recSolo': "Record : manche {solo}",
-    'mode.duel': "Duel", 'mode.duelInfo': "1v1 contre un ami", 'mode.duelInfoSolo': "1v1 contre un robot",
+    'mode.duel': "Duel", 'mode.duelInfo': "1v1 contre un ami", 'mode.duelInfoSolo': "1v1 ou équipes contre l'IA",
     'mode.zombie': "Zombies", 'mode.zombieInfo': "Ensemble contre les zombies", 'mode.zombieInfoSolo': "Survis aux vagues",
     'lobby.title': "En attente de ton ami", 'lobby.sub': "Le match commence quand ton ami appuie aussi sur <b>Rejoindre une partie</b>.",
     'lobby.mode': "Mode : <b>Zombies</b>", 'lobby.map': "Carte : <b>{map}</b>", 'lobby.opening': "Ouverture du salon…", 'lobby.waiting': "En attente…",
@@ -917,7 +937,7 @@ const STR = {
     'end.win': "Victoire !", 'end.lose': "Défaite", 'end.again': "Revanche", 'end.menu': "Menu principal", 'end.over': "Partie terminée",
     'end.newRec': "Nouveau record !", 'end.rec': "Record : manche {r}", 'end.stats': "{k} éliminations · {p} points",
     'rotate': "Tourne ton téléphone à l'horizontale pour jouer",
-    'msg.start': "C'est parti ! Le premier à {n} éliminations gagne", 'msg.practice': "Entraînement : tire sur le robot !", 'msg.noAmmo': "Plus de munitions",
+    'msg.start': "C'est parti ! Le premier à {n} éliminations gagne", 'msg.practice': "Duel contre {name} ! Le premier à {n} éliminations gagne", 'msg.noAmmo': "Plus de munitions",
     'role.0': "Puissant", 'role.1': "Précis", 'role.2': "Rapide", 'role.3': "Courte portée", 'role.4': "Tireur d'élite",
     'w.ak.info': "Puissant, automatique. Fort recul.", 'w.m4.info': "Précis, peu de recul.", 'w.mp5.info': "Cadence très rapide, bon en mouvement.",
     'w.shotgun': "Fusil à pompe", 'w.shotgun.info': "Tue en un coup de près, faible de loin.", 'w.awp.info': "Chaque touche tue. Imprécis sans lunette.",
@@ -986,6 +1006,7 @@ const STR = {
     'rules.z13solo': "Si tu tombes, la partie est finie (sans Second Wind, tu ne peux pas te relever).",
     'rules.z13coop': "À terre, tu peux encore tirer au pistolet et ramper lentement. Si ton ami vient et maintient <b>E</b>, tu te relèves en 3 secondes. Celui qui n'est pas relevé en 30 secondes meurt et réapparaît à la manche suivante. Si vous tombez tous les deux, la partie est finie.",
     'bill.new': "NOUVELLE", 'bill.season': "SAISON", 'bill.sale': "-50 %",
+    'main.size': "Partie", 'main.sizePractice': "Partie d'entraînement", 'main.sizeNote': "Les parties en équipe se jouent en solo avec des joueurs IA. En ligne avec un ami, c'est toujours du 1v1.", 'size.1': "Duel 1v1", 'size.3': "Équipe 3v3", 'size.5': "Équipe 5v5", 'size.1i': "Premier à 10 éliminations", 'size.teamI': "Première équipe à {n}", 'team.blue': "Bleus", 'team.red': "Rouges", 'msg.team': "Bataille en équipe {n}v{n} ! La première équipe à {k} éliminations gagne", 'end.blueWins': "L'équipe bleue gagne !", 'end.redWins': "L'équipe rouge gagne !", 'end.winners': "Gagnants : {names}", 'end.mvp': "MVP : {name} ({k} éliminations)", 'end.vs': "Adversaire : {name}", 'board.kd': "K/D", 'board.teamTo': "la première équipe à {n} éliminations gagne", 'rules.t1': "{room} · Carte : <b>{map}</b> · <b>{n}v{n}</b> avec des coéquipiers IA : la première équipe à <b>{k} éliminations</b> gagne. Pas de tir allié.",
   },
 };
 const LANGS = Object.keys(STR);
@@ -1078,6 +1099,8 @@ const settings = {
   map: ((m) => m === 'sokak' ? 'kadikoy' : ['arena', 'kadikoy', 'liman'].includes(m) ? m : 'arena')(store.get('map', 'arena')),
   bot: ['easy', 'normal', 'hard'].includes(store.get('bot', 'normal')) ? store.get('bot', 'normal') : 'normal',
   mode: store.get('mode', 'duel') === 'zombie' ? 'zombie' : 'duel',
+  // Tek başına maç boyu: 1 (düello), 3 (3v3), 5 (5v5)
+  size: [1, 3, 5].includes(store.get('size', 1)) ? store.get('size', 1) : 1,
   fs: store.get('fs', true) !== false,
   music: store.get('music', true) !== false,
 };
@@ -2049,7 +2072,35 @@ function hitBoxes(pos, crouchF) {
 }
 
 // ---------- Karakter modeli (asker) ----------
-const TEAM = { blue: 0x3b82f6, red: 0xe5484d, robot: 0x9aa3ad };
+const TEAM = { blue: 0x3b82f6, red: 0xe5484d };
+// Bir gruptaki aynı malzemeli parçalar tek geometride birleşir: asker başına çizim çağrısı yarıdan aza iner
+// (takım maçında 10 karakter telefonda da akıcı kalsın diye)
+function mergeChildren(group) {
+  const by = new Map();
+  for (const c of group.children) if (c.isMesh) { if (!by.has(c.material)) by.set(c.material, []); by.get(c.material).push(c); }
+  for (const [mat, list] of by) {
+    if (list.length < 2) continue;
+    const parts = list.map((m) => { m.updateMatrix(); return (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()).applyMatrix4(m.matrix); });
+    const n = parts.reduce((a, g) => a + g.attributes.position.count, 0);
+    const P = new Float32Array(n * 3), N = new Float32Array(n * 3), U = new Float32Array(n * 2);
+    let o = 0;
+    for (const g of parts) {
+      const c = g.attributes.position.count;
+      P.set(g.attributes.position.array, o * 3); N.set(g.attributes.normal.array, o * 3);
+      if (g.attributes.uv) U.set(g.attributes.uv.array, o * 2);
+      o += c; g.dispose();
+    }
+    for (const m of list) { m.geometry.dispose(); group.remove(m); }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(P, 3));
+    geo.setAttribute('normal', new THREE.BufferAttribute(N, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(U, 2));
+    geo.computeBoundingSphere();
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    group.add(mesh);
+  }
+}
 function enemyGunMesh(W, dark) {
   const g = new THREE.Group();
   const col = new THREE.MeshStandardMaterial({ color: W.col || 0x2b2b2b, roughness: 0.6, metalness: 0.3 });
@@ -2067,6 +2118,7 @@ function enemyGunMesh(W, dark) {
     box(0.06, 0.08, 0.2, W.wood ? new THREE.MeshStandardMaterial({ color: W.wood, roughness: 0.8 }) : col, 0.08, -0.15, -0.15);
     if (W.sniper) box(0.06, 0.06, 0.32, dark, 0.08, -0.03, -0.55);
   }
+  mergeChildren(g);
   return g;
 }
 function makeSoldier() {
@@ -2129,6 +2181,8 @@ function makeSoldier() {
   const flash = new THREE.Sprite(new THREE.SpriteMaterial({ map: flashTex, color: 0xffd28a, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
   flash.position.set(0.08, -0.12, -1.0); flash.scale.setScalar(0.5); flash.visible = false;
   arms.add(flash);
+  for (const l of legs) { mergeChildren(l.thigh); mergeChildren(l.knee); }
+  mergeChildren(torso); mergeChildren(headPivot); mergeChildren(arms);
   root.userData = { hips, legs, torso, headPivot, arms, guns, flash, team };
   return root;
 }
@@ -2147,16 +2201,18 @@ function poseSoldier(s, { crouchF, pitch, walk, speed, weapon, airborne }) {
   u.arms.rotation.x = pitch + 0.22 * crouchF;
   u.guns.forEach((g, i) => { g.visible = i === weapon; });
 }
-function makeLabel(text) {
+// İsim etiketi. color: yazı rengi (takım arkadaşı mavi, rakip kırmızı); xray: duvarın arkasından da görünür (takım arkadaşları)
+function makeLabel(text, color = '#fff', xray = false) {
   const c = document.createElement('canvas');
   c.width = 256; c.height = 64;
   const g = c.getContext('2d');
   g.font = 'bold 34px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.lineWidth = 6; g.strokeStyle = 'rgba(0,0,0,.6)'; g.strokeText(text, 128, 32);
-  g.fillStyle = '#fff'; g.fillText(text, 128, 32);
+  g.fillStyle = color; g.fillText(text, 128, 32);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false }));
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, depthTest: !xray, fog: !xray }));
+  if (xray) s.renderOrder = 5;
   s.scale.set(1.6, 0.4, 1);
   s.position.y = 2.2;
   return s;
@@ -2471,13 +2527,6 @@ const newBody = () => ({ p: new THREE.Vector3(), v: new THREE.Vector3(), grounde
 const me = { body: newBody(), yaw: 0, pitch: 0, hp: CFG.maxHp, alive: false, life: 0, slots: [0, 5, KNIFE], slot: 0, lastSlot: 1, w: 0, ammo: {}, reload: 0, drawT: 0, fireCd: 0, swingT: 0, swingDur: 0.4, swingHeavy: false, knifeHitT: -1, queuedShot: 0, protT: 0, deadT: 0, heat: 0, ads: 0, zoom: 0, zoomFov: 32, scopeBlock: 0, crouch: false, eyeH: CFG.eye, jumpBuf: 0, fresh: true, aliveT: 0, spawnAt: new THREE.Vector3(), kills: 0, deaths: 0, hs: 0, rtt: 0, lastHit: null };
 const enemy = { name: t('enemy'), pos: new THREE.Vector3(), tPos: new THREE.Vector3(), lastPos: new THREE.Vector3(), yaw: 0, tYaw: 0, pitch: 0, tPitch: 0, alive: false, life: -1, kills: 0, hs: 0, rtt: 0, deathT: 0, stepT: 0, walk: 0, speed: 0, prot: false, flashT: 0, swingT: 0, w: 0, crouchF: 0, tCrouch: 0, air: false };
 const net = { peer: null, conn: null, role: null, code: '', practice: false, lastRecv: 0, joinTimer: 0 };
-const bot = { body: newBody(), hp: CFG.maxHp, alive: false, life: 0, respT: 0, target: null, think: 0, yaw: 0, pitch: 0, stuck: 0, crouch: false, seeT: 0, fireCd: 0, shots: 5, strafe: 1, strafeT: 0 };
-// Robot zorluğu: tepki süresi, nişan hatası, kafaya nişan alma olasılığı, seri uzunluğu ve aralar
-const BOT_LEVELS = {
-  easy: { react: 0.9, err: 0.055, head: 0.04, burst: [3, 4], pause: [1.0, 1.5] },
-  normal: { react: 0.55, err: 0.034, head: 0.1, burst: [4, 6], pause: [0.6, 1.0] },
-  hard: { react: 0.25, err: 0.015, head: 0.25, burst: [5, 9], pause: [0.3, 0.6] },
-};
 let camOffset = 0, hurtFx = 0, hitFx = 0, hitHead = false, dmgDirT = 0, vmKick = 0, bobT = 0, flashT = 0, sendAcc = 0;
 
 const PANELS = ['pMain', 'pLobby', 'pJoin', 'pPause', 'pEnd', 'pError'];
@@ -2497,7 +2546,7 @@ const saveName = () => store.set('name', nameIn.value.trim().slice(0, 14));
 
 // ---------- Ağ (PeerJS ile cihazdan cihaza) ----------
 function send(m) {
-  if (net.practice) { botReceive(m); return; }
+  if (net.practice) return;   // tek başına: botlar yerel, hasar doğrudan işlenir
   const c = net.conn;
   if (c && c.open) { try { c.send(m); } catch {} }
 }
@@ -2638,12 +2687,12 @@ function enemyShot(m) {
   const s = spatial(a);
   sfx.shot(m.w | 0, 0.85 * s.vol, s.pan);
 }
-function takeHit(d, hs, w, pen) {
+function takeHit(d, hs, w, pen, by) {
   if (state !== 'play' || !me.alive || me.protT > 0) return;
   me.hp -= Math.max(0, Math.min(200, d));
-  me.lastHit = { w, hs, pen };
+  me.lastHit = { w, hs, pen, by };
   hurtFx = Math.min(1, hurtFx + (hs ? 0.8 : 0.5));
-  showDamageDir();
+  showDamageDir(by ? by.body.p : enemy.pos);
   sfx.hurt();
   if (me.hp <= 0) die();
 }
@@ -2651,6 +2700,7 @@ function die() {
   const h = me.lastHit || { w: 0, hs: false, pen: false };
   me.hp = 0; me.alive = false; me.deadT = CFG.respawn;
   me.reload = 0; me.ads = 0; me.zoom = 0; me.knifeHitT = -1;
+  if (TM.on) { sfx.die(); tmKill(h.by, PL, h.w, h.hs, h.pen); return; }
   me.deaths++;
   enemy.kills++;
   if (h.hs) enemy.hs++;
@@ -2674,16 +2724,29 @@ function endMatch(win) {
   releaseDesktop();
   $('endTitle').textContent = win ? t('end.win') : t('end.lose');
   $('endTitle').style.color = win ? 'var(--ok)' : 'var(--danger)';
-  $('endScore').textContent = me.kills + ' - ' + enemy.kills;
-  $('endSub').textContent = '';
+  $('endScore').textContent = TM.on ? TM.score.A + ' - ' + TM.score.B : me.kills + ' - ' + enemy.kills;
+  $('endSub').innerHTML = TM.on ? tmEndText(win) : '';
   keys.clear(); mouse.left = mouse.right = false; touch.fire = false;
   showPanel('pEnd');
   if (win) sfx.win(); else sfx.lose();
 }
+// Bitiş ekranı (tek başına): düelloda rakibin adı; takım maçında kazanan takım, oyuncuları ve maçın yıldızı
+function tmEndText(win) {
+  if (TM.size === 1) return esc(t('end.vs', { name: TM.bots[0].name }));
+  $('endTitle').textContent = t(win ? 'end.blueWins' : 'end.redWins');
+  const nm = (e) => (e === PL ? t('score.you') : e.name);
+  const winners = TM.ents.filter((e) => e.team === (win ? 'A' : 'B')).map(nm);
+  const mvp = TM.ents.slice().sort((a, b) => b.kills - a.kills || a.deaths - b.deaths)[0];
+  return esc(t('end.winners', { names: winners.join(', ') })) + '<br>' + esc(t('end.mvp', { name: nm(mvp), k: mvp.kills }));
+}
 function pickSpawn() {
+  // Takım maçında oyuncu kendi takımının (A) noktalarında doğar
+  if (TM.on && TM.size > 1) return farSpawn(MAP.spawnsA, 'A');
+  const foe = TM.on ? TM.bots[0] : null;
+  const alive = foe ? foe.alive : enemy.alive, fp = foe ? foe.body.p : enemy.pos;
   let best = SPAWNS[0], bestD = -1;
   for (const s of SPAWNS) {
-    const d = (enemy.alive ? Math.hypot(s[0] - enemy.pos.x, s[1] - enemy.pos.z) : 0) + Math.random() * 10;
+    const d = (alive ? Math.hypot(s[0] - fp.x, s[1] - fp.z) : 0) + Math.random() * 10;
     if (d > bestD) { bestD = d; best = s; }
   }
   return best;
@@ -2698,7 +2761,8 @@ function applyLoadout() {
   buildWeps();
 }
 function spawnMe(initial) {
-  const sp = initial ? (net.role === 'guest' ? MAP.spawnsB[0] : MAP.spawnsA[0]) : pickSpawn();
+  let sp = initial ? (net.role === 'guest' ? MAP.spawnsB[0] : MAP.spawnsA[0]) : pickSpawn();
+  if (TM.on) sp = freeSpot(sp[0], sp[1], PL);
   const b = me.body;
   b.p.set(sp[0], 0, sp[1]); b.v.set(0, 0, 0); b.grounded = true; b.stepUp = 0; b.h = CFG.height;
   me.spawnAt.copy(b.p);
@@ -2717,11 +2781,14 @@ function spawnMe(initial) {
 function resetScores() {
   me.kills = me.deaths = me.hs = 0;
   enemy.kills = enemy.hs = 0;
+  TM.score.A = TM.score.B = 0;
   $('feed').innerHTML = '';
   feed.length = 0;
   updateScore();
 }
 function startMatch() {
+  tmStop();
+  $('scMe').textContent = t('score.you');
   if (MODE === 'zombie') { zBegin(); return; }
   resetScores();
   if (net.role === 'host') buildMap(settings.map);
@@ -2738,28 +2805,30 @@ function startMatch() {
 function resetMatch() {
   if (MODE === 'zombie') { zBegin(); return; }
   resetScores();
-  if (net.practice) spawnBot();
-  spawnMe(false);
+  if (TM.on) { clearDecals(); tmStart(); tmHud(); spawnMe(true); }
+  else spawnMe(false);
   state = 'play';
   enterPlay();
+  if (TM.on) tmStartMsg();
 }
 function startPractice() {
   cleanupNet();
   net.practice = true;
   net.role = 'host';
-  if (MODE === 'zombie') { zBegin(); return; }
+  tmStop();
+  if (MODE === 'zombie') { $('scMe').textContent = t('score.you'); zBegin(); return; }
   buildMap(settings.map);
   clearDecals();
-  setEnemyName(t('bot'));
-  setEnemyTeam(TEAM.robot);
-  $('scA').style.color = 'var(--me)'; $('scB').style.color = 'var(--danger)';
   resetScores();
   enemy.life = -1; enemy.alive = false; enemy.deathT = 0;
-  spawnBot();
+  enemyGroup.visible = false;
+  // Tek başına maç: 1v1 düello ya da yapay zekâ takım arkadaşlarıyla 3v3 / 5v5
+  tmStart();
+  tmHud();
   spawnMe(true);
   state = 'play';
   enterPlay();
-  showMsg(t('msg.practice'), 3);
+  tmStartMsg();
 }
 function enterPlay() {
   $('hud').classList.remove('hidden');
@@ -2790,6 +2859,7 @@ function goMenu(panel) {
   $('board').classList.add('hidden');
   enemyGroup.visible = false;
   enemy.life = -1; enemy.alive = false;
+  tmStop();
   keys.clear(); mouse.left = mouse.right = false; touch.fire = false;
   camera.fov = BASE_FOV; camera.updateProjectionMatrix();
   zCleanup();
@@ -2811,105 +2881,318 @@ function connLost(msg) {
   showError(msg);
 }
 
-// ---------- Antrenman robotu ----------
-function spawnBot() {
-  const s = MAP.spawnsB[Math.random() * MAP.spawnsB.length | 0];
-  bot.body.p.set(s[0], 0, s[1]);
-  bot.body.v.set(0, 0, 0);
-  bot.body.h = CFG.height;
-  bot.hp = CFG.maxHp; bot.alive = true; bot.life++;
-  bot.target = null; bot.crouch = false;
-  bot.yaw = Math.atan2(s[0], s[1]); bot.pitch = 0;
-  bot.seeT = 0; bot.fireCd = 0.5; bot.shots = 5;
+// ---------- Yapay zekâ oyuncular (tek başına: 1v1, 3v3, 5v5) ----------
+// Oyuncu hep mavi takımda (A), rakipler kırmızı (B). Düelloda (1v1) tek rakip vardır ve eski antrenman rakibiyle aynı davranır.
+// Her bot en yakın görünen rakibi (oyuncu ya da rakip bot) seçer; kimseyi görmüyorsa yol ızgarasıyla en yakın rakibi arar.
+// Takım arkadaşına hasar yok. Botlar birbirini de vurur: aynı mermi izi (traceBullet), aynı duvar/kasa kuralları.
+const BOT_NAMES = [
+  'Vortex', 'Kaya_07', 'NightOwl', 'Mert', 'Luna', 'Ghost', 'Atlas', 'Zeynep', 'Blaze', 'Kenzo',
+  'Deniz', 'Nova', 'Raven', 'Emir', 'Sparrow', 'Talon', 'Elif', 'Orion', 'Pixel', 'Baran',
+  'Mira', 'Echo', 'Cyrus', 'Defne', 'Rogue', 'Arda', 'Yuki', 'Falcon', 'Selin', 'Drift',
+  'Kerem', 'Ivy', 'Nomad', 'Ece', 'Jolt', 'Onur', 'Zara', 'Comet', 'Ilgaz', 'Cobra',
+  'Leo', 'Asya', 'Storm', 'Can_34', 'Frost', 'Lina', 'Wolfie', 'Ayaz', 'Rio', 'Shade',
+  'Melis', 'Tundra', 'Koray', 'Nika', 'Bolt', 'Efe', 'Hexa', 'Duman', 'Sora', 'Kuzey',
+  'Mavi_9', 'Quill', 'Tarık', 'Juno', 'Poyraz', 'Sky', 'Lara', 'Ozzy', 'Bora', 'Kiro',
+];
+const TEAM_WIN = { 1: CFG.winKills, 3: 20, 5: 30 };
+const TM = { on: false, size: 1, win: CFG.winKills, bots: [], ents: [], pool: [], score: { A: 0, B: 0 }, fields: new Map(), clock: 0, navBudget: 0, snd: 0, log: [] };
+// Oyuncunun kendisi, botlarla aynı arayüzle (hedef seçimi, hasar, skor tablosu)
+const PL = {
+  me: true, team: 'A',
+  get name() { return myName(); }, get body() { return me.body; }, get alive() { return me.alive; }, get crouch() { return me.crouch; },
+  get crouchF() { return me.crouch ? 1 : 0; }, get eyeH() { return me.eyeH; }, get yaw() { return me.yaw; },
+  get kills() { return me.kills; }, set kills(v) { me.kills = v; },
+  get deaths() { return me.deaths; }, set deaths(v) { me.deaths = v; },
+  get hs() { return me.hs; }, set hs(v) { me.hs = v; },
+};
+TM.ents = [PL];
+// Bot zorluğu: tepki süresi, nişan hatası, kafaya nişan alma olasılığı, seri uzunluğu ve aralar
+const BOT_LEVELS = {
+  easy: { react: 0.9, err: 0.055, head: 0.04, burst: [3, 4], pause: [1.0, 1.5] },
+  normal: { react: 0.55, err: 0.034, head: 0.1, burst: [4, 6], pause: [0.6, 1.0] },
+  hard: { react: 0.25, err: 0.015, head: 0.25, burst: [5, 9], pause: [0.3, 0.6] },
+};
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const foeTeam = (team) => (team === 'A' ? 'B' : 'A');
+const chestY = (e) => e.body.p.y + (e.crouch ? 0.8 : 1.15);
+// Modeller havuzda tutulur: her maçta yeniden yapılmaz, sadece renk ve isim etiketi değişir
+function tmModel(i) {
+  let m = TM.pool[i];
+  if (!m) { m = TM.pool[i] = { g: makeSoldier(), label: null }; m.g.visible = false; scene.add(m.g); }
+  return m;
 }
-function updateBot(dt) {
-  const b = bot.body;
-  if (!bot.alive) { bot.respT -= dt; if (bot.respT <= 0) spawnBot(); }
-  else {
-    const L = BOT_LEVELS[settings.bot];
-    // Görüş: robotun gözünden oyuncunun göğsüne duvar var mı
-    const eyeY = b.p.y + (bot.crouch ? CFG.crouchEye : CFG.eye);
-    const dx = me.body.p.x - b.p.x, dy = me.body.p.y + (me.crouch ? 0.8 : 1.15) - eyeY, dz = me.body.p.z - b.p.z;
+function tmMakeBot(i, name, team, w) {
+  const m = tmModel(i), blue = team === 'A';
+  m.g.userData.team.color.setHex(blue ? TEAM.blue : TEAM.red);
+  // Telefonda takım maçında karakter gölgeleri kapalı: gölge geçişi 10 karakterde çizim çağrısını ikiye katlar
+  const shadow = !(isTouch && TM.size > 1);
+  m.g.traverse((o) => { if (o.isMesh) o.castShadow = shadow; });
+  if (m.label) { m.g.remove(m.label); m.label.material.map.dispose(); m.label.material.dispose(); }
+  m.label = makeLabel(name, blue ? '#8cc8ff' : '#ff6b73', blue);
+  m.g.add(m.label);
+  return {
+    name, team, w, g: m.g, label: m.label, body: newBody(), hp: CFG.maxHp, alive: false, life: 0, respT: 0, protT: 0,
+    foe: null, sees: false, seeT: 0, losT: Math.random() * 0.15, hunt: null, huntT: 0, target: null, think: 0, stuck: 0,
+    yaw: 0, pitch: 0, crouch: false, fireCd: 0.5, shots: 5, strafe: 1, strafeT: 0, lastHit: null,
+    kills: 0, deaths: 0, hs: 0, crouchF: 0, walk: 0, speed: 0, deathT: 0, flashT: 0, stepT: 0,
+  };
+}
+function tmHide() { for (const m of TM.pool) m.g.visible = false; }
+function tmStop() { TM.on = false; TM.bots = []; TM.ents = [PL]; TM.fields.clear(); tmHide(); }
+function tmStart() {
+  TM.on = true; TM.size = settings.size; TM.win = TEAM_WIN[TM.size];
+  tmHide();
+  // Her maçta rastgele, birbirinden farklı isimler (oyuncunun adıyla aynısı çıkmaz)
+  const mine = myName().toLowerCase();
+  const names = shuffle(BOT_NAMES.filter((n) => n.toLowerCase() !== mine));
+  const n = TM.size;
+  TM.bots = [];
+  for (let i = 0; i < 2 * n - 1; i++) TM.bots.push(tmMakeBot(i, names[i], i < n - 1 ? 'A' : 'B', n === 1 ? 0 : [0, 1, 2][Math.random() * 3 | 0]));
+  TM.ents = [PL, ...TM.bots];
+  TM.score.A = TM.score.B = 0;
+  TM.fields.clear();
+  TM.log.length = 0;
+  me.alive = false;   // oyuncu birazdan A'nın ilk noktasında doğar; botlar 1. noktadan başlar
+  let a = 1, b = 0;
+  for (const B of TM.bots) tmSpawn(B, B.team === 'A' ? a++ : b++);
+}
+// Üst skor: takım maçında "Mavi 12 : 9 Kırmızı", düelloda "Sen 3 : 2 <rakibin adı>"
+function tmHud() {
+  const team = TM.size > 1;
+  $('scMe').textContent = team ? t('team.blue') : t('score.you');
+  $('scEn').textContent = team ? t('team.red') : TM.bots[0].name;
+  $('scA').style.color = 'var(--me)'; $('scB').style.color = 'var(--danger)';
+}
+function tmStartMsg() {
+  showMsg(TM.size > 1 ? t('msg.team', { n: TM.size, k: TM.win }) : t('msg.practice', { name: TM.bots[0].name, n: TM.win }), 3.5);
+}
+
+// Doğma: takımın noktaları sırayla; aynı yere ikinci kişi düşerse yanına kaydırılır (duvarın, kasanın içine değil)
+const SPAWN_OFFS = [[0, 0], [1.3, 0], [-1.3, 0], [0, 1.3], [0, -1.3], [1.3, 1.3], [-1.3, -1.3], [1.3, -1.3], [-1.3, 1.3], [2.6, 0], [-2.6, 0], [0, 2.6], [0, -2.6]];
+function freeSpot(x, z, self) {
+  for (const [ox, oz] of SPAWN_OFFS) {
+    const px = x + ox, pz = z + oz;
+    if (Math.abs(px) > MAP.hx - 0.5 || Math.abs(pz) > MAP.hz - 0.5) continue;
+    if (overlap(px, 0.01, pz, CFG.height)) continue;
+    if (NAV.block && NAV.block[navCell(px, pz)[1] * NAV.nx + navCell(px, pz)[0]] && (ox || oz)) continue;
+    if (TM.ents.some((e) => e !== self && e.alive && Math.hypot(e.body.p.x - px, e.body.p.z - pz) < 0.9)) continue;
+    return [px, pz];
+  }
+  return [x, z];
+}
+const teamSpawns = (team) => (team === 'A' ? MAP.spawnsA : MAP.spawnsB);
+// Yeniden doğuş: takımın noktalarından canlı rakiplere en uzak olanı (biraz rastgele)
+function farSpawn(list, team) {
+  let best = list[0], bestD = -1;
+  for (const s of list) {
+    let near = 0;
+    for (const e of TM.ents) if (e.team !== team && e.alive) near = near ? Math.min(near, Math.hypot(s[0] - e.body.p.x, s[1] - e.body.p.z)) : Math.hypot(s[0] - e.body.p.x, s[1] - e.body.p.z);
+    const d = Math.min(near, 40) + Math.random() * 10;
+    if (d > bestD) { bestD = d; best = s; }
+  }
+  return best;
+}
+function tmSpawn(B, idx) {
+  let s;
+  if (TM.size === 1) s = MAP.spawnsB[Math.random() * MAP.spawnsB.length | 0];   // düello: eski antrenman rakibi gibi
+  else if (idx !== undefined) { const L = teamSpawns(B.team); s = L[idx % L.length]; }
+  else s = farSpawn(teamSpawns(B.team), B.team);
+  const [x, z] = freeSpot(s[0], s[1], B);
+  const b = B.body;
+  b.p.set(x, 0, z); b.v.set(0, 0, 0); b.h = CFG.height; b.grounded = true;
+  B.hp = CFG.maxHp; B.alive = true; B.life++;
+  B.protT = TM.size > 1 ? CFG.protect : 0;
+  B.foe = null; B.sees = false; B.seeT = 0; B.hunt = null; B.huntT = 0; B.target = null; B.crouch = false; B.stuck = 0;
+  B.yaw = Math.atan2(x, z); B.pitch = 0; B.fireCd = 0.5; B.shots = 5; B.deathT = 0; B.crouchF = 0; B.lastHit = null;
+}
+
+// Görüş: en yakın rakipten başlayarak en fazla 3 ışın; ilk görünen hedef olur.
+// Takım maçında her bot bunu ~0,15 sn'de bir yapar (başlangıçları kaydırılmış), düelloda her karede.
+function tmLook(B, eyeY) {
+  const p = B.body.p, cands = [];
+  for (const e of TM.ents) {
+    if (e.team === B.team || !e.alive) continue;
+    const d = Math.hypot(e.body.p.x - p.x, chestY(e) - eyeY, e.body.p.z - p.z);
+    if (d < 60) cands.push([d, e]);
+  }
+  cands.sort((x, y) => x[0] - y[0]);
+  B.sees = false;
+  for (let i = 0; i < cands.length && i < 3; i++) {
+    const [d, e] = cands[i];
+    const dir = [(e.body.p.x - p.x) / d, (chestY(e) - eyeY) / d, (e.body.p.z - p.z) / d];
+    if (rayWorld([p.x, eyeY, p.z], dir, d).t >= d - 0.4) { B.foe = e; B.sees = true; return; }
+  }
+}
+function tmNearestFoe(B) {
+  let best = null, bd = 1e9;
+  for (const e of TM.ents) {
+    if (e.team === B.team || !e.alive) continue;
+    const d = Math.hypot(e.body.p.x - B.body.p.x, e.body.p.z - B.body.p.z);
+    if (d < bd) { bd = d; best = e; }
+  }
+  return best;
+}
+// Yol alanı hedef başına ortak: aynı rakibi arayan botlar aynı alanı kullanır; en fazla 0,7 sn'de bir, karede en çok 2 tane yenilenir
+function tmField(e) {
+  let f = TM.fields.get(e);
+  if (!f) { f = { dist: new Int32Array(NAV.nx * NAV.nz), t: -1e9 }; TM.fields.set(e, f); }
+  if (TM.clock - f.t >= 0.7 && (TM.navBudget > 0 || f.t < -1e8)) { TM.navBudget--; navField([e.body.p], f.dist); f.t = TM.clock; }
+  return f.dist;
+}
+function tmBot(B, dt, L) {
+  const b = B.body;
+  if (!B.alive) { B.respT -= dt; if (B.respT <= 0) tmSpawn(B); return; }
+  B.protT = Math.max(0, B.protT - dt);
+  const eyeY = b.p.y + (B.crouch ? CFG.crouchEye : CFG.eye);
+  if (B.foe && !B.foe.alive) { B.foe = null; B.sees = false; }
+  B.losT -= dt;
+  if (B.losT <= 0) { B.losT = TM.size === 1 ? 0 : 0.15; tmLook(B, eyeY); }
+  B.seeT = B.sees ? B.seeT + dt : Math.max(0, B.seeT - dt * 2);
+  const F = B.foe;
+  let wx, wz, speed, jump = false;
+  if (B.seeT > 0 && F) {
+    // Çatışma: hedefe dön, sağa sola kay, uzaktaysa yaklaş, seri atış yap
+    const dx = F.body.p.x - b.p.x, dy = chestY(F) - eyeY, dz = F.body.p.z - b.p.z;
     const dist = Math.hypot(dx, dy, dz), flat = Math.hypot(dx, dz) || 1;
-    let sees = false;
-    if (me.alive && dist < 60) sees = rayWorld([b.p.x, eyeY, b.p.z], [dx / dist, dy / dist, dz / dist], dist).t >= dist - 0.4;
-    bot.seeT = sees ? bot.seeT + dt : Math.max(0, bot.seeT - dt * 2);
-    let wx, wz, speed, jump = false;
-    if (bot.seeT > 0) {
-      // Çatışma: oyuncuya dön, sağa sola kay, uzaktaysa yaklaş, seri atış yap
-      bot.yaw = wrapAng(bot.yaw + angDiff(Math.atan2(-dx, -dz), bot.yaw) * Math.min(1, dt * 10));
-      bot.pitch = Math.atan2(dy, flat);
-      bot.strafeT -= dt;
-      if (bot.strafeT <= 0) { bot.strafe = Math.random() < 0.5 ? -1 : 1; bot.strafeT = 0.6 + Math.random(); }
-      const fx = dx / flat, fz = dz / flat;
-      wx = -fz * bot.strafe; wz = fx * bot.strafe;
-      if (dist > 18) { wx += fx * 0.7; wz += fz * 0.7; }
-      speed = CFG.speed * (bot.crouch ? CFG.crouchMul : 0.6);
-      bot.fireCd -= dt;
-      if (sees && bot.seeT > L.react && bot.fireCd <= 0) botShoot(L);
-    } else {
-      bot.think -= dt;
-      // Oyuncuyu arar: 1 m'lik ızgarada binaların ve araçların arasından yol bulur
-      bot.navT = (bot.navT || 0) - dt;
-      if (me.alive && bot.navT <= 0 && NAV.block) { navField([me.body.p]); bot.navT = 0.7; }
-      const [ci, cj] = NAV.block ? navCell(b.p.x, b.p.z) : [0, 0];
-      let near = 1e9;
-      if (NAV.block && me.alive) for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+    B.yaw = wrapAng(B.yaw + angDiff(Math.atan2(-dx, -dz), B.yaw) * Math.min(1, dt * 10));
+    B.pitch = Math.atan2(dy, flat);
+    B.strafeT -= dt;
+    if (B.strafeT <= 0) { B.strafe = Math.random() < 0.5 ? -1 : 1; B.strafeT = 0.6 + Math.random(); }
+    const fx = dx / flat, fz = dz / flat;
+    wx = -fz * B.strafe; wz = fx * B.strafe;
+    if (dist > 18) { wx += fx * 0.7; wz += fz * 0.7; }
+    speed = CFG.speed * (B.crouch ? CFG.crouchMul : 0.6);
+    B.fireCd -= dt;
+    if (B.sees && B.seeT > L.react && B.fireCd <= 0) tmShoot(B, L, F);
+  } else {
+    B.think -= dt;
+    // Arama: 1 m'lik ızgarada binaların ve araçların arasından en yakın rakibe yol bulur
+    B.huntT -= dt;
+    if (B.huntT <= 0 || (B.hunt && !B.hunt.alive)) { B.hunt = tmNearestFoe(B); B.huntT = 1 + Math.random(); }
+    const D = B.hunt && NAV.block ? tmField(B.hunt) : null;
+    let near = 1e9;
+    if (D) {
+      const [ci, cj] = navCell(b.p.x, b.p.z);
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
         const ii = ci + di, jj = cj + dj;
-        if (ii >= 0 && jj >= 0 && ii < NAV.nx && jj < NAV.nz) near = Math.min(near, NAV.dist[jj * NAV.nx + ii]);
+        if (ii >= 0 && jj >= 0 && ii < NAV.nx && jj < NAV.nz) near = Math.min(near, D[jj * NAV.nx + ii]);
       }
-      if (near < 1e9) [wx, wz] = navDir(b.p.x, b.p.z);
-      else {
-        if (!bot.target || bot.think <= 0 || Math.hypot(bot.target.x - b.p.x, bot.target.z - b.p.z) < 1) {
-          bot.target = { x: (Math.random() * 2 - 1) * (MAP.hx - 4), z: (Math.random() * 2 - 1) * (MAP.hz - 4) };
-          bot.think = 2 + Math.random() * 3;
-        }
-        const tx = bot.target.x - b.p.x, tz = bot.target.z - b.p.z, l = Math.hypot(tx, tz) || 1;
-        wx = tx / l; wz = tz / l;
-      }
-      if (Math.random() < dt * 0.3) {
-        if (!bot.crouch) { bot.crouch = true; b.h = CFG.crouchHeight; }
-        else if (!overlap(b.p.x, b.p.y, b.p.z, CFG.height)) { bot.crouch = false; b.h = CFG.height; }
-      }
-      speed = CFG.speed * (bot.crouch ? CFG.crouchMul : 0.7);
-      jump = b.grounded && !bot.crouch && (Math.random() < dt * 0.4 || bot.stuck > 0.3);
-      bot.yaw = wrapAng(bot.yaw + angDiff(Math.atan2(-wx, -wz), bot.yaw) * Math.min(1, dt * 8));
-      bot.pitch *= 0.9;
     }
-    moveBody(b, dt, wx, wz, jump, speed);
-    if (bot.seeT === 0) {
-      if (Math.hypot(b.v.x, b.v.z) < 0.6 * (bot.crouch ? 0.4 : 1)) { bot.stuck += dt; if (bot.stuck > 0.6) { bot.target = null; bot.stuck = 0; } } else bot.stuck = 0;
+    if (near < 1e9) [wx, wz] = navDir(b.p.x, b.p.z, D);
+    else {
+      if (!B.target || B.think <= 0 || Math.hypot(B.target.x - b.p.x, B.target.z - b.p.z) < 1) {
+        B.target = { x: (Math.random() * 2 - 1) * (MAP.hx - 4), z: (Math.random() * 2 - 1) * (MAP.hz - 4) };
+        B.think = 2 + Math.random() * 3;
+      }
+      const tx = B.target.x - b.p.x, tz = B.target.z - b.p.z, l = Math.hypot(tx, tz) || 1;
+      wx = tx / l; wz = tz / l;
     }
+    if (Math.random() < dt * 0.3) {
+      if (!B.crouch) { B.crouch = true; b.h = CFG.crouchHeight; }
+      else if (!overlap(b.p.x, b.p.y, b.p.z, CFG.height)) { B.crouch = false; b.h = CFG.height; }
+    }
+    speed = CFG.speed * (B.crouch ? CFG.crouchMul : 0.7);
+    jump = b.grounded && !B.crouch && (Math.random() < dt * 0.4 || B.stuck > 0.3);
+    B.yaw = wrapAng(B.yaw + angDiff(Math.atan2(-wx, -wz), B.yaw) * Math.min(1, dt * 8));
+    B.pitch *= 0.9;
   }
-  applyEnemyState({ p: [b.p.x, b.p.y, b.p.z], y: bot.yaw, x: bot.pitch, a: bot.alive ? 1 : 0, l: bot.life, pr: 0, w: 0, c: bot.crouch ? 1 : 0, g: b.grounded ? 0 : 1 });
+  moveBody(b, dt, wx, wz, jump, speed);
+  if (B.seeT === 0) {
+    if (Math.hypot(b.v.x, b.v.z) < 0.6 * (B.crouch ? 0.4 : 1)) { B.stuck += dt; if (B.stuck > 0.6) { B.target = null; B.stuck = 0; } } else B.stuck = 0;
+  }
 }
-// Robotun atışı: AK-47 ile, zorluğa göre isabet; mermi kasaları deler, duvarda durur
-function botShoot(L) {
-  const W = WEAPONS[0], b = bot.body;
-  bot.fireCd = W.delay;
-  if (--bot.shots <= 0) {
-    bot.shots = L.burst[0] + Math.floor(Math.random() * (L.burst[1] - L.burst[0] + 1));
-    bot.fireCd = L.pause[0] + Math.random() * (L.pause[1] - L.pause[0]);
+// Canlı karakterlerin vuruş kutuları (bir takımın): mermi en yakın kutuda durur
+function tmBoxes(team) {
+  const out = [];
+  for (const e of TM.ents) if (e.team === team && e.alive) { const hb = hitBoxes(e.body.p, e.crouchF); hb.ref = e; out.push(hb); }
+  return out;
+}
+// Botun atışı: zorluğa göre isabet; mermi kasaları deler, duvarda durur. Hedefin önündeki başka bir rakip mermiyi alır.
+function tmShoot(B, L, F) {
+  const W = WEAPONS[B.w], b = B.body;
+  B.fireCd = W.delay;
+  if (--B.shots <= 0) {
+    B.shots = L.burst[0] + Math.floor(Math.random() * (L.burst[1] - L.burst[0] + 1));
+    B.fireCd = L.pause[0] + Math.random() * (L.pause[1] - L.pause[0]);
   }
-  const eye = [b.p.x, b.p.y + (bot.crouch ? CFG.crouchEye : CFG.eye), b.p.z];
+  const eye = [b.p.x, b.p.y + (B.crouch ? CFG.crouchEye : CFG.eye), b.p.z];
   const head = Math.random() < L.head;
-  const ty = me.body.p.y + (head ? me.eyeH + 0.05 : (me.crouch ? 0.75 : 1.1));
-  const dx = me.body.p.x - eye[0], dy = ty - eye[1], dz = me.body.p.z - eye[2];
+  const fEye = F.me ? me.eyeH : F.crouch ? CFG.crouchEye : CFG.eye;
+  const ty = F.body.p.y + (head ? fEye + 0.05 : (F.crouch ? 0.75 : 1.1));
+  const dx = F.body.p.x - eye[0], dy = ty - eye[1], dz = F.body.p.z - eye[2];
   const len = Math.hypot(dx, dy, dz) || 1;
-  const moving = Math.hypot(me.body.v.x, me.body.v.z) / CFG.speed;
-  const err = L.err * (1 + moving * 0.8 + (me.body.grounded ? 0 : 1));
+  const moving = Math.hypot(F.body.v.x, F.body.v.z) / CFG.speed;
+  const err = L.err * (1 + moving * 0.8 + (F.body.grounded ? 0 : 1));
   const d = [dx / len + (Math.random() * 2 - 1) * err, dy / len + (Math.random() * 2 - 1) * err, dz / len + (Math.random() * 2 - 1) * err];
   const dl = Math.hypot(d[0], d[1], d[2]);
   d[0] /= dl; d[1] /= dl; d[2] /= dl;
-  const r = traceBullet(eye, d, W.range, W.pen, me.alive ? hitBoxes(me.body.p, me.crouch ? 1 : 0) : null);
+  const r = traceBullet(eye, d, W.range, W.pen, tmBoxes(foeTeam(B.team)));
   const end = [eye[0] + d[0] * r.t, eye[1] + d[1] * r.t, eye[2] + d[2] * r.t];
-  enemyShot({ a: [eye[0] + d[0] * 0.9, eye[1] - 0.25, eye[2] + d[2] * 0.9], b: end, n: r.part ? 0 : r.n, w: 0 });
-  if (r.part) takeHit(Math.round((r.part === 2 ? W.head : W.body) * r.mul), r.part === 2, 0, r.pens > 0);
+  tmShotFx(B, [eye[0] + d[0] * 0.9, eye[1] - 0.25, eye[2] + d[2] * 0.9], end, r.part ? 0 : r.n, B.w);
+  if (r.part && r.ref) tmDamage(r.ref, Math.round((r.part === 2 ? W.head : W.body) * r.mul), r.part === 2, B.w, r.pens > 0, B);
 }
-function botReceive(m) {
-  if (m.t !== 'hit' || !bot.alive) return;
-  bot.hp -= m.d;
-  if (bot.hp <= 0) { bot.alive = false; bot.respT = CFG.respawn; enemyDied(m.w | 0, !!m.hs, !!m.pn); }
+function tmShotFx(B, a, b, n, w) {
+  const A = new THREE.Vector3().fromArray(a), E = new THREE.Vector3().fromArray(b);
+  spawnTracer(A, E, B.team === 'A' ? 0x9ad0ff : 0xff8a7a);
+  if (Array.isArray(n)) spawnImpact(E, n, false);
+  B.flashT = 0.05;
+  // 10 kişilik çatışmada ses düğümü taşmasın: uzaktaki atışlar sessiz, saniyede ~22 atış sesi
+  const s = spatial(A);
+  if (s.vol > 0.12 && TM.snd >= 1) { TM.snd--; sfx.shot(w, 0.85 * s.vol, s.pan); }
+}
+// Hasar: oyuncuya takeHit ile, bota doğrudan. Takım arkadaşı zaten hedef listesinde yok (dost ateşi kapalı).
+function tmDamage(V, d, hs, w, pen, by) {
+  if (V.me) { if (state !== 'play' || !me.alive || me.protT > 0) return false; takeHit(d, hs, w, pen, by); return true; }
+  if (!V.alive || V.protT > 0) return false;
+  V.hp -= Math.max(0, Math.min(200, d));
+  if (V.hp <= 0) { V.alive = false; V.respT = CFG.respawn; V.deathT = 0.001; V.foe = null; V.sees = false; V.seeT = 0; tmKill(by, V, w, hs, pen); }
+  return true;
+}
+function tmKill(K, V, w, hs, pen) {
+  V.deaths++;
+  if (K) { K.kills++; if (hs) K.hs++; TM.score[K.team]++; }
+  TM.log.push({ k: K ? K.name : null, kt: K ? K.team : null, v: V.name, vt: V.team });   // test kaydı
+  if (TM.log.length > 300) TM.log.shift();
+  addFeed(K ? K.name : '?', V.name, w, hs, pen, K === PL, K && K.team === 'A' ? 'blue' : 'red', V.team === 'A' ? 'blue' : 'red', K === PL || V === PL);
+  if (K === PL) sfx.kill();
+  updateScore();
+  if (state === 'play') { if (TM.score.A >= TM.win) endMatch(true); else if (TM.score.B >= TM.win) endMatch(false); }
+}
+function tmUpdate(dt) {
+  TM.clock += dt; TM.navBudget = 2; TM.snd = Math.min(4, TM.snd + dt * 22);
+  const L = BOT_LEVELS[settings.bot] || BOT_LEVELS.normal;
+  for (const B of TM.bots) { tmBot(B, dt, L); if (state !== 'play') break; }
+}
+// Görünüm: model doğrudan botun gövdesini izler (ağ yok, ara değer gerekmez)
+function tmView(dt, now) {
+  for (const B of TM.bots) {
+    const g = B.g, b = B.body;
+    B.crouchF += ((B.crouch ? 1 : 0) - B.crouchF) * (1 - Math.exp(-dt * 12));
+    if (B.alive) {
+      const sp = Math.hypot(b.v.x, b.v.z);
+      B.speed += (sp - B.speed) * Math.min(1, dt * 10);
+      B.walk += dt * B.speed * 1.6;
+      g.position.copy(b.p);
+      g.rotation.set(0, B.yaw, 0);
+      g.visible = !(B.protT > 0 && Math.floor(now / 110) % 2 === 0);
+      // Rakibin koşarken ayak sesi duyulur (eğilen, havadaki sessiz)
+      if (B.team === 'B' && sp > 4.5 && b.grounded && !B.crouch) {
+        B.stepT -= dt * sp / CFG.speed;
+        if (B.stepT <= 0) { B.stepT = 0.34; const s = spatial(b.p); if (s.vol > 0.2) sfx.step(0.6 * s.vol * s.vol, s.pan); }
+      }
+    } else if (B.deathT > 0) {
+      B.deathT += dt;
+      g.rotation.set(Math.min(1, B.deathT / 0.35) * 1.45, B.yaw, 0);
+      g.visible = B.deathT < 1.0;
+    } else g.visible = false;
+    if (!g.visible) continue;
+    poseSoldier(g, { crouchF: B.crouchF, pitch: B.pitch, walk: B.walk, speed: B.alive ? B.speed : 0, weapon: B.w, airborne: B.alive && !b.grounded });
+    B.label.position.y = 2.2 - CFG.crouchDrop * B.crouchF;
+    const fl = g.userData.flash;
+    fl.visible = B.alive && B.flashT > 0;
+    if (fl.visible) fl.material.rotation = Math.random() * TAU;
+    B.flashT -= dt;
+  }
 }
 
 // ---------- Silahlar ----------
@@ -2940,10 +3223,15 @@ function traceBullet(o, d, range, maxPen, enemyBoxes) {
   if (d[1] < -1e-6) { const t = -o[1] / d[1]; if (t > 0 && t < range) hits.push({ t, tout: t, pen: false, n: [0, 1, 0] }); }
   for (const s of solids) { if (s.ghost) continue; const h = rayBox(o, d, s, range); if (h) hits.push({ t: h.t, tout: h.tout, pen: s.pen, n: s.inv ? null : normalOf(h) }); }
   hits.sort((a, b) => a.t - b.t);
-  let part = 0, enemyT = Infinity;
+  // enemyBoxes: tek hedef ya da hedef listesi (takım maçı); en yakın vurulan kutu sayılır, ref vurulanı söyler
+  let part = 0, enemyT = Infinity, ref = null;
   if (enemyBoxes) {
-    const hb = rayBox(o, d, enemyBoxes.head, range), bb = rayBox(o, d, enemyBoxes.body, range);
-    if (hb && (!bb || hb.t <= bb.t)) { part = 2; enemyT = hb.t; } else if (bb) { part = 1; enemyT = bb.t; }
+    for (const eb of Array.isArray(enemyBoxes) ? enemyBoxes : [enemyBoxes]) {
+      const hb = rayBox(o, d, eb.head, range), bb = rayBox(o, d, eb.body, range);
+      let p = 0, tt = Infinity;
+      if (hb && (!bb || hb.t <= bb.t)) { p = 2; tt = hb.t; } else if (bb) { p = 1; tt = bb.t; }
+      if (p && tt < enemyT) { part = p; enemyT = tt; ref = eb.ref || null; }
+    }
   }
   let mul = 1, pens = 0, endT = range, endN = null;
   const holes = [];
@@ -2952,7 +3240,7 @@ function traceBullet(o, d, range, maxPen, enemyBoxes) {
     if (h.pen && pens < maxPen) { pens++; mul *= CFG.penMul; holes.push(h); continue; }
     endT = h.t; endN = h.n; break;
   }
-  if (part && enemyT <= endT) return { part, t: enemyT, mul, pens, holes, n: null };
+  if (part && enemyT <= endT) return { part, t: enemyT, mul, pens, holes, n: null, ref };
   return { part: 0, t: endT, mul, pens, holes, n: endN };
 }
 const _o = [0, 0, 0], _d = [0, 0, 0];
@@ -2973,10 +3261,10 @@ function fireGun() {
   me.heat = Math.min(1, me.heat + (W.auto ? 0.18 : 0.35));
   const o = camera.position;
   _o[0] = o.x; _o[1] = o.y; _o[2] = o.z;
-  const boxes = enemy.alive && enemy.life >= 0 ? hitBoxes(enemy.pos, enemy.crouchF) : null;
+  const boxes = TM.on ? tmBoxes('B') : enemy.alive && enemy.life >= 0 ? hitBoxes(enemy.pos, enemy.crouchF) : null;
   const mz = muzzleWorld();
   let dmg = 0, anyHead = false, anyPen = false, firstEnd = null, firstN = 0, hitPos = null;
-  const zHits = new Map();
+  const zHits = new Map(), bHits = new Map();
   const n = W.pellets || 1;
   for (let i = 0; i < n; i++) {
     const dir = aimDir(spread);
@@ -2996,6 +3284,11 @@ function fireGun() {
         const h = zHits.get(r.z) || { d: 0, hs: false };
         h.d += W.body * ZCFG.dmgMul * (hs ? ZCFG.headMul : 1) * r.mul * fall * (Z.pap.has(me.w) ? 2 : 1); h.hs = h.hs || hs;
         zHits.set(r.z, h);
+      } else if (r.ref) {
+        // Takım maçı: her bota ayrı hasar (pompalıda saçmalar toplanır)
+        const h = bHits.get(r.ref) || { d: 0, hs: false, pen: false };
+        h.d += (hs ? W.head : W.body) * r.mul * fall; h.hs = h.hs || hs; h.pen = h.pen || r.pens > 0;
+        bHits.set(r.ref, h);
       } else dmg += (hs ? W.head : W.body) * r.mul * fall;
       anyHead = anyHead || hs; anyPen = anyPen || r.pens > 0;
       hitPos = end;
@@ -3005,6 +3298,10 @@ function fireGun() {
   if (W.splash && MODE === 'zombie') zSplash(firstEnd, W.splash, 600 * (Z.pap.has(me.w) ? 2 : 1), [...zHits.keys()]);
   for (const [z, h] of zHits) zHit(z, h.d, h.hs, false);
   if (zHits.size) { hitFx = 1; hitHead = anyHead; if (anyHead) sfx.head(); else sfx.hit(); spawnSpark(hitPos, 0x8a2020, 0.45); }
+  for (const [B, h] of bHits) {
+    if (tmDamage(B, Math.round(h.d), h.hs, me.w, h.pen, PL)) { hitFx = 1; hitHead = h.hs; if (h.hs) sfx.head(); else sfx.hit(); }
+    spawnSpark(hitPos, 0xff5040, 0.45);
+  }
   if (dmg > 0) {
     send({ t: 'hit', d: Math.round(dmg), hs: anyHead ? 1 : 0, w: me.w, pn: anyPen ? 1 : 0 });
     if (!enemy.prot) { hitFx = 1; hitHead = anyHead; if (anyHead) sfx.head(); else sfx.hit(); }
@@ -3040,21 +3337,31 @@ function knifeHit() {
   const o = camera.position;
   _o[0] = o.x; _o[1] = o.y; _o[2] = o.z;
   if (MODE === 'zombie') { zKnife(heavy, range, o); return; }
-  const boxes = enemy.alive && enemy.life >= 0 ? hitBoxes(enemy.pos, enemy.crouchF) : null;
+  // Hedefler: online rakip ya da (takım maçında) rakip botlar
+  const targets = TM.on ? tmBoxes('B') : enemy.alive && enemy.life >= 0 ? [hitBoxes(enemy.pos, enemy.crouchF)] : [];
   // Küçük bir yelpaze içinde birkaç ışın: bıçak tam nişan gerektirmez
   for (const [dy, dp] of [[0, 0], [0.22, 0], [-0.22, 0], [0, -0.25], [0, 0.2], [0.12, -0.12], [-0.12, -0.12]]) {
     const cp = Math.cos(me.pitch + dp);
     _d[0] = -Math.sin(me.yaw + dy) * cp; _d[1] = Math.sin(me.pitch + dp); _d[2] = -Math.cos(me.yaw + dy) * cp;
     const wall = rayWorld(_o, _d, range).t;
-    if (boxes) {
-      const hb = rayBox(_o, _d, boxes.head, wall), bb = rayBox(_o, _d, boxes.body, wall);
-      if (hb || bb) {
+    let hit = null, ht = Infinity;
+    for (const bx of targets) {
+      const hb = rayBox(_o, _d, bx.head, wall), bb = rayBox(_o, _d, bx.body, wall);
+      const tt = Math.min(hb ? hb.t : Infinity, bb ? bb.t : Infinity);
+      if (tt < ht) { ht = tt; hit = bx; }
+    }
+    if (hit) {
+      {
         // Rakip bana sırtı dönükse arkadan vuruş
-        const back = Math.cos(angDiff(enemy.yaw, me.yaw)) > 0.5;
+        const R = hit.ref;
+        const back = Math.cos(angDiff(R ? R.yaw : enemy.yaw, me.yaw)) > 0.5;
         const dmg = heavy ? (back ? W.heavyBack : W.heavy) : (back ? W.back : W.body);
-        send({ t: 'hit', d: dmg, hs: 0, w: KNIFE, pn: 0 });
-        if (!enemy.prot) { hitFx = 1; hitHead = back; sfx.stab(); }
-        const t = (hb || bb).t;
+        if (R) { if (tmDamage(R, dmg, false, KNIFE, false, PL)) { hitFx = 1; hitHead = back; sfx.stab(); } }
+        else {
+          send({ t: 'hit', d: dmg, hs: 0, w: KNIFE, pn: 0 });
+          if (!enemy.prot) { hitFx = 1; hitHead = back; sfx.stab(); }
+        }
+        const t = ht;
         spawnSpark(o.clone().add(new THREE.Vector3(_d[0], _d[1], _d[2]).multiplyScalar(t)), 0xff5040, 0.35);
         vmKick = 0.6;
         return;
@@ -3080,7 +3387,7 @@ function tryReload() {
 // ---------- HUD ----------
 const elScope = $('scope'), elMsg = $('msg'), elVig = $('vig'), elHit = $('hitmark'), elDmg = $('dmgDir'), elCross = $('cross'), elAds = $('adsDot');
 let lastHp = -1, lastAmmo = '', msgText = '', msgUntil = 0, msgShown = null;
-function updateScore() { $('scA').textContent = me.kills; $('scB').textContent = enemy.kills; if (!$('board').classList.contains('hidden')) renderBoard(); }
+function updateScore() { $('scA').textContent = TM.on ? TM.score.A : me.kills; $('scB').textContent = TM.on ? TM.score.B : enemy.kills; if (!$('board').classList.contains('hidden')) renderBoard(); }
 function showMsg(t, sec) { msgText = t; msgUntil = performance.now() + sec * 1000; }
 function showDamageDir(src = enemy.pos) {
   const dx = src.x - me.body.p.x, dz = src.z - me.body.p.z;
@@ -3139,7 +3446,7 @@ function renderInfo() {
     ? [[t('tip.lthumb'), t('act.walk')], [t('tip.rside'), t('act.lookAround')], [t('touch.fire'), t('k.fireDrag')], [t('touch.aim'), t('k.aimTouch')], [t('touch.jump'), t('k.jumpTouch')], [t('touch.crouch'), t('act.crouch')], ['⟳', t('act.reload')], [t('tip.icons'), t('act.switch')], [t('tip.tapScore'), t('act.board')]]
     : [['W A S D', t('act.walk')], ['Shift', t('k.shiftDuel')], ['Ctrl / C', t('act.crouch')], [t('tip.space'), t('k.jumpDuel')], [t('tip.lmb'), t('act.fire')], [t('tip.rmb'), t('k.rmbDuel')], ['1 · 2 · 3', t('k.slotsDuel')], [t('tip.wheel'), t('k.wheel')], ['R', t('act.reload')], ['Tab', t('act.board')], ['Esc', t('act.thisMenu')]];
   $('infoBox').innerHTML = `<ul class="rules">
-      <li>${t('rules.d1', { room, map: mapName(MAP.id || settings.map), n: CFG.winKills })}</li>
+      <li>${TM.on && TM.size > 1 ? t('rules.t1', { room, map: mapName(MAP.id || settings.map), n: TM.size, k: TM.win }) : t('rules.d1', { room, map: mapName(MAP.id || settings.map), n: CFG.winKills })}</li>
       <li>${t('rules.d2')}</li>
       <li>${t('rules.d3')}</li>
       <li>${t('rules.d4')}</li>
@@ -3149,14 +3456,16 @@ function renderInfo() {
     <div class="keys">${keysHtml.map(([k, v]) => `<kbd>${k}</kbd><span>${v}</span>`).join('')}</div>`;
 }
 const feed = [];
-function addFeed(killer, victim, w, hs, pen, iKilled) {
+// kc / vc: öldürenin ve ölenin takım rengi (takım maçı); mine: oyuncunun dahil olduğu satır vurgulu çerçeveyle
+function addFeed(killer, victim, w, hs, pen, iKilled, kc, vc, mine = true) {
   const el = document.createElement('div');
-  el.className = 'fe';
+  el.className = mine ? 'fe' : 'fe other';
   const meCls = net.role === 'guest' ? 'red' : 'blue', enCls = net.role === 'guest' ? 'blue' : 'red';
-  el.innerHTML = `<span class="${iKilled ? meCls : enCls}">${esc(killer)}</span>${icon(w)}${pen ? ICON_PEN : ''}${hs ? ICON_HS : ''}<span class="${iKilled ? enCls : meCls}">${esc(victim)}</span>`;
+  kc = kc || (iKilled ? meCls : enCls); vc = vc || (iKilled ? enCls : meCls);
+  el.innerHTML = `<span class="${kc}">${esc(killer)}</span>${icon(w)}${pen ? ICON_PEN : ''}${hs ? ICON_HS : ''}<span class="${vc}">${esc(victim)}</span>`;
   $('feed').prepend(el);
   feed.unshift({ el, t: performance.now() });
-  while (feed.length > 4) feed.pop().el.remove();
+  while (feed.length > (TM.on && TM.size > 1 ? 5 : 4)) feed.pop().el.remove();
 }
 function updateFeed(now) {
   for (let i = feed.length - 1; i >= 0; i--) {
@@ -3175,16 +3484,33 @@ function renderBoard() {
     $('boardInfo').textContent = t('board.zInfo', { map: mapName('fabrika'), r: Math.max(1, Z.round) });
     return;
   }
+  $('board').classList.toggle('team', TM.on && TM.size > 1);
+  if (TM.on && TM.size > 1) {
+    // Takım maçı: iki takım, oyuncu başına leş / ölüm / oran / kafadan
+    $('boardHead').innerHTML = `<tr><th>${t('board.player')}</th><th>${t('board.kills')}</th><th>${t('board.deaths')}</th><th>${t('board.kd')}</th><th>${t('board.hs')}</th></tr>`;
+    const kd = (e) => (e.deaths ? (e.kills / e.deaths).toFixed(2) : e.kills.toFixed(2));
+    let h = '';
+    for (const [team, cls, nm] of [['A', 'blue', t('team.blue')], ['B', 'red', t('team.red')]]) {
+      h += `<tr class="th ${cls}"><td colspan="5">${esc(nm)} · ${TM.score[team]} / ${TM.win}</td></tr>`;
+      const list = TM.ents.filter((e) => e.team === team).sort((a, b) => b.kills - a.kills || a.deaths - b.deaths);
+      for (const e of list) h += `<tr class="${e === PL ? 'me' : team === 'A' ? 'tm' : 'en'}"><td>${esc(e === PL ? t('board.you', { name: myName() }) : e.name)}</td><td>${e.kills}</td><td>${e.deaths}</td><td>${kd(e)}</td><td>${e.hs}</td></tr>`;
+    }
+    $('boardBody').innerHTML = h;
+    $('boardInfo').textContent = mapName(MAP.id) + ' · ' + TM.size + 'v' + TM.size + ' · ' + t('board.teamTo', { n: TM.win });
+    return;
+  }
   $('boardHead').innerHTML = `<tr><th>${t('board.player')}</th><th>${t('board.kills')}</th><th>${t('board.deaths')}</th><th>${t('board.hs')}</th><th>${t('board.ping')}</th></tr>`;
+  const foe = TM.on ? TM.bots[0] : null;
   const rows = [
     { cls: 'me', name: t('board.you', { name: myName() }), k: me.kills, d: me.deaths, h: me.hs, p: ping(me.rtt) },
-    { cls: 'en', name: enemy.name, k: enemy.kills, d: me.kills, h: enemy.hs, p: ping(enemy.rtt || me.rtt) },
+    foe ? { cls: 'en', name: foe.name, k: foe.kills, d: foe.deaths, h: foe.hs, p: '-' } : { cls: 'en', name: enemy.name, k: enemy.kills, d: me.kills, h: enemy.hs, p: ping(enemy.rtt || me.rtt) },
   ].sort((a, b) => b.k - a.k);
   $('boardBody').innerHTML = rows.map((r) => `<tr class="${r.cls}"><td>${esc(r.name)}</td><td>${r.k}</td><td>${r.d}</td><td>${r.h}</td><td>${r.p}</td></tr>`).join('');
   $('boardInfo').textContent = mapName(MAP.id) + ' · ' + (net.practice ? t('board.practice') : t('board.firstTo', { n: CFG.winKills }));
 }
 function showBoard(on) {
   $('board').classList.toggle('hidden', !on);
+  document.body.classList.toggle('boardOn', !!on);   // dokunmatik düğmeler tablonun üstünde soluklaşır
   if (on) renderBoard();
 }
 function updateHud(now) {
@@ -3633,10 +3959,12 @@ function navBuild() {
   }
 }
 const navCell = (x, z) => [Math.max(0, Math.min(NAV.nx - 1, Math.floor(x - NAV.ox))), Math.max(0, Math.min(NAV.nz - 1, Math.floor(z - NAV.oz)))];
-function navField(targets) {
-  const { nx, nz, block, dist } = NAV;
+// dist: hedef başına ayrı alan (takım maçı botları); verilmezse ortak NAV.dist (zombiler)
+function navField(targets, dist = NAV.dist) {
+  const { nx, nz, block } = NAV;
   dist.fill(1e9);
-  const q = new Int32Array(nx * nz); let h = 0, t = 0;
+  if (!NAV.q || NAV.q.length !== nx * nz) NAV.q = new Int32Array(nx * nz);
+  const q = NAV.q; let h = 0, t = 0;
   for (const p of targets) { const [i, j] = navCell(p.x, p.z); const k = j * nx + i; if (dist[k] !== 0) { dist[k] = 0; q[t++] = k; } }
   while (h < t) {
     const k = q[h++], i = k % nx, j = (k / nx) | 0, d = dist[k] + 1;
@@ -3651,13 +3979,13 @@ function navField(targets) {
     }
   }
 }
-function navDir(x, z) {
+function navDir(x, z, dist = NAV.dist) {
   const [i, j] = navCell(x, z);
-  let best = NAV.dist[j * NAV.nx + i], bi = i, bj = j;
+  let best = dist[j * NAV.nx + i], bi = i, bj = j;
   for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
     const ii = i + di, jj = j + dj;
     if (ii < 0 || jj < 0 || ii >= NAV.nx || jj >= NAV.nz) continue;
-    const d = NAV.dist[jj * NAV.nx + ii];
+    const d = dist[jj * NAV.nx + ii];
     if (d < best) { best = d; bi = ii; bj = jj; }
   }
   const tx = NAV.ox + bi + 0.5 - x, tz = NAV.oz + bj + 0.5 - z, l = Math.hypot(tx, tz) || 1;
@@ -4680,7 +5008,7 @@ function updatePlay(dt, now) {
       if (heavyEdge) knifeAttack(true);
       else if (trig) knifeAttack(false);
     } else if (W.auto) {
-      if (trig) fireGun();
+      if (trig || edge) fireGun();   // kısa dokunuş da en az bir mermi atsın
     } else {
       if (edge) me.queuedShot = 0.2;
       if (me.queuedShot > 0 && fireGun()) me.queuedShot = 0;
@@ -4740,8 +5068,8 @@ function updatePlay(dt, now) {
   muzzleLight.intensity = flashT > 0 ? 6 : 0;
 
   if (MODE === 'zombie') { zUpdate(dt, now); zPushPlayer(); }
-  else if (net.practice && !overlay) updateBot(dt);
-  updateEnemyView(dt, now);
+  else if (TM.on && !overlay) tmUpdate(dt);
+  if (TM.on) tmView(dt, now); else updateEnemyView(dt, now);
 
   sendAcc += dt;
   if (!net.practice && sendAcc >= 0.05) {
@@ -4882,13 +5210,21 @@ const stickEl = $('stick'), knobEl = $('knob');
 function placeStick(x, y, on) { stickEl.style.left = x + 'px'; stickEl.style.top = y + 'px'; stickEl.classList.toggle('on', on); knobEl.style.transform = ''; }
 function stickHome() { if (touch.moveId === null) placeStick(100, innerHeight - 100, false); }
 function flashBtn(btn) { btn.classList.add('on'); setTimeout(() => btn.classList.remove('on'), 120); }
+// iPhone Safari (WebKit) dokunma hedefini bazen düğmenin içindeki yazı düğümü olarak verir; .closest() yoktur.
+// Elemana çevir, olmazsa parmağın altındaki elemanı al.
+function tEl(t) {
+  let el = t.target;
+  if (el && el.nodeType !== 1) el = el.parentElement;
+  if (!el || !el.closest) el = document.elementFromPoint(t.clientX, t.clientY);
+  return el && el.closest ? el : document.body;
+}
 addEventListener('touchstart', (e) => {
   if (!inGame()) return;
-  if (e.changedTouches.length === 1 && e.target.closest && e.target.closest('#pauseBtn')) return;
+  if (e.changedTouches.length === 1 && tEl(e.changedTouches[0]).closest('#pauseBtn')) return;
   e.preventDefault();
   initAudio();
   for (const t of e.changedTouches) {
-    const btn = t.target.closest ? t.target.closest('.tb, .wp, #score') : null;
+    const btn = tEl(t).closest('.tb, .wp, #score');
     const id = btn ? btn.id : '';
     if (id === 'score') { showBoard($('board').classList.contains('hidden')); continue; }
     if (id.startsWith('wp')) { selectSlot(+id.slice(2)); continue; }
@@ -4970,7 +5306,16 @@ function renderModes() {
   const rs = store.get('zrec_solo', { r: 0 }), rc = store.get('zrec_coop', { r: 0 });
   $('zRec').textContent = PORTAL ? (rs.r ? t('main.recSolo', { solo: rs.r }) : '') : rs.r || rc.r ? t('main.rec', { solo: rs.r || '-', coop: rc.r || '-' }) : '';
   $('mainSub').textContent = MODE === 'zombie' ? t('main.subZombie') : t(PORTAL ? 'main.subDuelSolo' : 'main.subDuel');
+  // Tek başına maç türü: 1v1 düello, 3v3, 5v5 (online arkadaş maçı hep 1v1)
+  $('sizeLbl').textContent = PORTAL ? t('main.size') : t('main.sizePractice');
+  $('sizeChips').innerHTML = [1, 3, 5].map((n) => `<button class="chip${n === settings.size ? ' on' : ''}" data-size="${n}"><b>${t('size.' + n)}</b><small>${n === 1 ? t('size.1i') : t('size.teamI', { n: TEAM_WIN[n] })}</small></button>`).join('');
 }
+$('sizeChips').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-size]');
+  if (!b) return;
+  settings.size = +b.dataset.size; store.set('size', settings.size);
+  renderModes();
+});
 $('modeChips').addEventListener('click', (e) => {
   const b = e.target.closest('[data-mode]');
   if (!b) return;
@@ -5057,7 +5402,10 @@ window.__arenaReady = true;
 // Testler için: doğma noktaları arası yol var mı, sahnede kaç çizim/üçgen var
 const navCheck = () => { let bad = 0; for (const b of MAP.spawnsB) { navField([{ x: b[0], z: b[1] }]); for (const a of MAP.spawnsA) { const [i, j] = navCell(a[0], a[1]); if (NAV.dist[j * NAV.nx + i] >= 1e9) bad++; } } return bad; };
 const drawInfo = () => { let calls = 0, tris = 0; scene.traverseVisible((o) => { if (o.isMesh) { calls++; const g = o.geometry; tris += (g.index ? g.index.count : g.attributes.position.count) / 3; } }); return calls + ' draw calls, ' + Math.round(tris / 1000) + 'k triangles'; };
-window.arena = { navCheck, drawInfo, LANG, PORTAL, t, me, enemy, net, bot, Z, zHurt, zGiveWeapon, zThrow, zPowerOn, zStartRound, get MODE() { return MODE; }, solids, CFG, WEAPONS, MAP, touch, mouse, keys, gfx, get state() { return state; }, startPractice, fireGun, knifeAttack, selectSlot, chooseWeapon, showPanel, spawnMe, showBoard, hitBoxes, traceBullet, buildMap };
+// sim: oyunu görüntüsüz ileri sarar (testte maçı hızlıca bitirmek için)
+const sim = (sec, dt = 1 / 30) => { for (let i = 0; i < sec / dt; i++) step(last + dt * 1000, false); last = performance.now(); };
+const setSize = (n) => { settings.size = n; renderModes(); };
+window.arena = { navCheck, drawInfo, LANG, PORTAL, t, me, enemy, net, get bot() { return TM.bots.find((b) => b.team === 'B'); }, TM, PL, tmStart, tmDamage, freeSpot, overlap, sim, setSize, settings, Z, zHurt, zGiveWeapon, zThrow, zPowerOn, zStartRound, get MODE() { return MODE; }, solids, CFG, WEAPONS, MAP, touch, mouse, keys, gfx, get state() { return state; }, startPractice, fireGun, knifeAttack, selectSlot, chooseWeapon, showPanel, spawnMe, showBoard, hitBoxes, traceBullet, buildMap };
 </script>
 </body>
 </html>
